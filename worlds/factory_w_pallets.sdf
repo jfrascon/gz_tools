@@ -1,0 +1,582 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+    <!--
+    It is strongly recommended to use for the file name the same string as the world name.
+    -->
+    <world name="factory_w_pallets">
+
+        <atmosphere type='adiabatic' />
+        <gravity>0 0 -9.8</gravity>
+        <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+
+        <scene>
+            <ambient>0.4 0.4 0.4 1</ambient>
+            <background>0.7 0.7 0.7 1</background>
+            <shadows>false</shadows>
+            <grid>true</grid>
+            <origin_visual>true</origin_visual>
+        </scene>
+
+        <!-- ======================================================================================================= -->
+        <!-- Physics -->
+        <!-- ======================================================================================================= -->
+
+        <!-- Tighter stepping for contact-rich scenes -->
+        <physics name="dart_physics" default="true" type="ignored">
+          <max_step_size>0.002</max_step_size>          <!-- 2 ms per step -->
+          <real_time_update_rate>500</real_time_update_rate>
+          <real_time_factor>1.0</real_time_factor>
+        </physics>
+
+        <!-- ======================================================================================================= -->
+        <!-- Plugins -->
+        <!-- ======================================================================================================= -->
+
+        <!--
+        Physics engine plugin. Activates DART dynamics engine (default in Gazebo Sim)
+        Reference: https://gazebosim.org/api/sim/9/physics.html
+        -->
+        <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics">
+          <engine>
+            <filename>gz-physics-dartsim-plugin</filename>
+          </engine>
+        </plugin>
+
+        <!--
+        Contact and collision management system. Enables detection and reporting
+        of physical contacts between collision elements during simulation.
+        -->
+        <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact" />
+
+        <!--
+        IMU system. Required if the robot includes Inertial Measurement Units
+        (either simulated or real hardware via ROS 2 interfaces).
+        -->
+        <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu" />
+
+
+        <!--
+        Scene broadcaster. Publishes simulation scene data for external visualization tools
+        such as gz-gui and RViz (via ros_gz or equivalent bridge).
+        -->
+        <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster" />
+
+        <!--
+        User command system. Enables spawning, deletion, and modification of entities
+        via GUI interaction or remote commands (e.g., ROS 2 or CLI tools).
+        -->
+        <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands" />
+
+        <!--
+        Sensor system. Enables all sensor processing and rendering.
+        The render_engine tag selects the backend (e.g., OGRE2 for GPU-accelerated rendering).
+        -->
+        <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+            <render_engine>ogre2</render_engine>
+        </plugin>
+
+        <!-- ======================================================================================================= -->
+        <!-- Light -->
+        <!-- ======================================================================================================= -->
+
+        <light name="sun" type="directional">
+            <cast_shadows>1</cast_shadows>
+            <pose>0 0 10 0 -0.5 0</pose>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.2 0.2 0.2 1</specular>
+            <attenuation>
+                <range>1000</range>
+                <constant>0.9</constant>
+                <linear>0.01</linear>
+                <quadratic>0.001</quadratic>
+            </attenuation>
+            <direction>-0.5 0.1 -0.9</direction>
+        </light>
+
+        <!-- ======================================================================================================= -->
+        <!-- Datum -->
+        <!-- ======================================================================================================= -->
+        <!--
+        <spherical_coordinates>
+            <surface_model>EARTH_WGS84</surface_model>
+            <latitude_deg>0</latitude_deg>
+            <longitude_deg>0</longitude_deg>
+            <elevation>0</elevation>
+            <heading_deg>0</heading_deg>
+        </spherical_coordinates>
+        -->
+
+        <!-- ======================================================================================================= -->
+        <!-- Ground -->
+        <!-- ======================================================================================================= -->
+
+        <model name='ground_plane'>
+            <static>true</static>
+            <link name='link'>
+                <visual name='visual'>
+                    <geometry>
+                        <plane>
+                            <normal>0 0 1</normal>
+                            <size>100 100</size>
+                        </plane>
+                    </geometry>
+                    <pose>0 0 0 0 0 0</pose>
+                    <material>
+                        <ambient>0.4 0.4 0.4 1</ambient>
+                        <diffuse>0.4 0.4 0.4 1</diffuse>
+                        <specular>0.05 0.05 0.05 1</specular>
+                    </material>
+                    <cast_shadows>0</cast_shadows>
+                </visual>
+                <collision name='collision'>
+                    <geometry>
+                        <plane>
+                            <normal>0 0 1</normal>
+                            <size>100 100</size>
+                        </plane>
+                    </geometry>
+                    <pose>0 0 0 0 0 0</pose>
+                    <surface>
+                        <friction>
+                            <ode />
+                            <torsional>
+                                <ode />
+                            </torsional>
+                        </friction>
+                        <bounce />
+                        <contact />
+                    </surface>
+                </collision>
+                <pose>0 0 0 0 0 0</pose>
+            </link>
+            <pose>0 0 0 0 0 0</pose>
+        </model>
+
+        <!-- ======================================================================================================= -->
+        <!-- floor -->
+        <!-- ======================================================================================================= -->
+
+        <!-- <model name="floor_20.4x20.4">
+            <static>true</static>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box>
+                            <size>20.4 20.4 1.2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 -0.6 0 0 0</pose>
+                    <material>
+                        <ambient>0.6 0.6 0.6 1</ambient>
+                        <diffuse>0.6 0.6 0.6 1</diffuse>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <box>
+                            <size>20.4 20.4 1.2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 -0.6 0 0 0</pose>
+                    <surface>
+                        <friction>
+                            <ode>
+                                <mu>1.0</mu>
+                                <mu2>1.0</mu2>
+                            </ode>
+                        </friction>
+                        <contact>
+                            <ode>
+                                <kp>10000000</kp>
+                                <kd>1</kd>
+                                <min_depth>0.001</min_depth>
+                                <max_vel>0.1</max_vel>
+                            </ode>
+                        </contact>
+                    </surface>
+                </collision>
+                <pose>0 0 0 0 0 0</pose>
+            </link>
+            <pose>0 0 1.2 0 0 0</pose>
+        </model> -->
+
+        <!-- ======================================================================================================= -->
+        <!-- Walls -->
+        <!-- ======================================================================================================= -->
+
+        <model name="wall_up">
+            <static>true</static>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box>
+                            <size>20 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                    <material>
+                        <ambient>0.6 0.6 0.6 1</ambient>
+                        <diffuse>0.6 0.6 0.6 1</diffuse>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <box>
+                            <size>20 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                </collision>
+            </link>
+            <!--
+            y = factory.side/2 + wall.size_y/2 = 20/2 + 0.2/2  = 10 + 0.1 = 10.1 m
+            -->
+            <pose relative_to="ground_plane">0 10.1 0 0 0 0</pose>
+        </model>
+
+        <model name="wall_down">
+            <static>true</static>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box>
+                            <size>20 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                    <material>
+                        <ambient>0.6 0.6 0.6 1</ambient>
+                        <diffuse>0.6 0.6 0.6 1</diffuse>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <box>
+                            <size>20 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                </collision>
+            </link>
+            <!--
+            y = -factory.side/2 - wall.size_y/2 = -20/2 - 0.2/2  = -10 - 0.1 = -10.1 m
+            -->
+            <pose relative_to="ground_plane">0 -10.1 0 0 0 0</pose>
+        </model>
+
+        <model name="wall_left_up">
+            <static>true</static>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <box>
+                            <!--
+                            size_x = factory.side/2 - (std_cargo_container_40ft.size_y/2) =
+                                   = 20/2 - (2.336/2) = 10 - 1.168 = 8.832 m
+                            size_y = 0.2
+                            -->
+                            <size>8.832 0.2 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                    <material>
+                        <ambient>0.6 0.6 0.6 1</ambient>
+                        <diffuse>0.6 0.6 0.6 1</diffuse>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <box>
+                            <size>8.832 0.2 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                </collision>
+                <!--
+                Model is static, so inertial properties (mass, inertia matrix) are ignored by the simulator.
+                No <inertial> element is needed for this link.
+                -->
+            </link>
+            <!--
+            x = -factory.side/2 - wall.size_y/2 = -20/2 - 0.2/2  = -10 - 0.1 = -10.1 m
+            y = std_cargo_container_40ft.size_y/2 + wall.size_x/2 = 2.336/2 + 8.832/2 = 1.168 + 4.416 = 5.584 m
+            -->
+            <pose relative_to="ground_plane">-10.1 5.584 0 0 0 1.5708</pose>
+        </model>
+
+        <!--
+        Between wall_left_1 and wall_left_2, there is a gap of 0.2.336 m to insert the standar 40 ft cargo container.
+        -->
+
+        <model name="wall_left_down">
+            <static>true</static>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <!--
+                        size_x = factory.side/2 - (std_cargo_container_40ft.size_y/2) =
+                                = 20/2 - (2.336/2) = 10 - 1.168 = 8.832 m
+                        size_y = 0.2
+                        -->
+                        <box>
+                            <size>8.832 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                    <material>
+                        <ambient>0.6 0.6 0.6 1</ambient>
+                        <diffuse>0.6 0.6 0.6 1</diffuse>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <box>
+                            <size>8.832 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                </collision>
+            </link>
+            <!--
+            x = -factory.side/2 - wall.size_y/2 = -20/2 - 0.2/2  = -10 - 0.1 = -10.1 m
+            y = -std_cargo_container_40ft.size_y/2 - wall.size_x/2 = -2.336/2 - 8.832/2 = -1.168 - 4.416 = -5.584 m
+            -->
+            <pose relative_to="ground_plane">-10.1 -5.584 0 0 0 1.5708</pose>
+        </model>
+
+        <!--
+        Standard 40 ft cargo container with the right side removed is placed by on the right side of the world, so
+        two right walls are needed.
+        std_cargo_container_40ft.size_x = 12.19 m.
+        floor20x20.side = 20 m.
+        container x-axis is placed perpendicular to the x axis of the world, half length above the x axis, half length
+        below: 10 - (12.19/2) = 10 - 6.095 = 3.905 m for the wall_right_up/down.
+        -->
+        <model name="wall_right_up">
+            <static>true</static>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <!--
+                        size_x = 2 (no specific reason to use this number)
+                        -->
+                        <box>
+                            <size>2 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                    <material>
+                        <ambient>0.6 0.6 0.6 1</ambient>
+                        <diffuse>0.6 0.6 0.6 1</diffuse>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <box>
+                            <size>2 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                </collision>
+            </link>
+            <!--
+            x = factory.side/2 + wall.size_y/2 = 20/2 + 0.2/2  = 10 + 0.1 = 10.1 m
+            y = factory.side/2 - wall.size_x/2 = 20/2 + 2/2  = 10 - 1 = 9 m
+            -->
+            <pose relative_to="ground_plane">10.1 9 0 0 0 1.5708</pose>
+        </model>
+
+        <model name="wall_right_down">
+            <static>true</static>
+            <link name="link">
+                <visual name="visual">
+                    <geometry>
+                        <!--
+                        size_x = 2 (no specific reason)
+                        -->
+                        <box>
+                            <size>2 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                    <material>
+                        <ambient>0.6 0.6 0.6 1</ambient>
+                        <diffuse>0.6 0.6 0.6 1</diffuse>
+                    </material>
+                </visual>
+                <collision name="collision">
+                    <geometry>
+                        <box>
+                            <size>2 0.20 2</size>
+                        </box>
+                    </geometry>
+                    <pose>0 0 1 0 0 0</pose>
+                </collision>
+            </link>
+            <!--
+            x = factory.side/2 + wall.size_y/2 = 20/2 + 0.2/2  = 10 + 0.1 = 10.1 m
+            y = -factory.side/2 + wall.size_x/2 = -20/2 + 2/2  = -10 + 1 = -9 m
+            -->
+            <pose relative_to="ground_plane">10.1 -9 0 0 0 1.5708</pose>
+        </model>
+
+        <!-- ======================================================================================================= -->
+        <!-- Standar 40 ft cargo container to load pallets -->
+        <!-- ======================================================================================================= -->
+
+        <include>
+            <uri>model://std_cargo_container_40ft</uri>
+            <!--
+            x = -factory.side/2 - std_cargo_container_40ft.size_x/2 = -20/2 - 12.19/2 = -10 - 6.095 = -16.095 m
+            -->
+            <pose relative_to="ground_plane">-16.095 0 0 0 0 3.141592654</pose>
+        </include>
+
+        <!-- ======================================================================================================= -->
+        <!-- Standar 40 ft cargo container, lateral open, to unload pallets -->
+        <!-- ======================================================================================================= -->
+
+        <include>
+            <uri>model://std_cargo_container_40ft_right_side_removed_on_wheels</uri>
+            <!--
+            x = factory.side/2 + std_cargo_container_40ft.size_y/2 = 20/2 + 2.336/2 = 10 + 1.168 = 11.168 m
+            -->
+            <pose relative_to="ground_plane">11.168 0 0 0 0 -1.5708</pose>
+        </include>
+
+        <!-- ======================================================================================================= -->
+        <!-- Pallets with boxes -->
+        <!-- ======================================================================================================= -->
+
+        <!-- Colum 1 >(x negative, y negative, lower left corner) -->
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-9 -9.2 0 0 0 0</pose>
+            <name>pallet_w_boxes_1_1</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-7.5 -9.2 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_2_1</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-6 -9.2 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_3_1</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-4.5 -9.2 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_4_1</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-3 -9.2 0 0 0 0</pose>
+            <name>pallet_w_boxes_5_1</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-1.5 -9.2 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_6_1</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">0 -9.2 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_7_1</name>
+        </include>
+
+        <!-- Colum 2 -->
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-9 -6.8 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_1_2</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-7.5 -6.8 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_2_2</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-6 -6.8 0 0 0 0</pose>
+            <name>pallet_w_boxes_3_2</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-4.5 -6.8 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_4_2</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-3 -6.8 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_5_2</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-1.5 -6.8 0 0 0 0</pose>
+            <name>pallet_w_boxes_6_2</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">0 -6.8 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_7_2</name>
+        </include>
+
+        <!-- Colum 3 -->
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-9 -4.4 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_1_3</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-7.5 -4.4 0 0 0 0</pose>
+            <name>pallet_w_stacked_2_3</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-6 -4.4 0 0 0 0</pose>
+            <name>pallet_w_boxes_3_3</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">-4.5 -4.4 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_4_3</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-3 -4.4 0 0 0 0</pose>
+            <name>pallet_w_boxes_5_3</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_boxes</uri>
+            <pose relative_to="ground_plane">-1.5 -4.4 0 0 0 0</pose>
+            <name>pallet_w_boxes_6_3</name>
+        </include>
+
+        <include>
+            <uri>model://euro_pallet_w_stacked_boxes</uri>
+            <pose relative_to="ground_plane">0 -4.4 0 0 0 0</pose>
+            <name>pallet_w_stacked_boxes_7_3</name>
+        </include>
+    </world>
+</sdf>

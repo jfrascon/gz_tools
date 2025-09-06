@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+    <model name="cardboard_box" canonical_link="link" placement_frame="link">
+        <static>false</static>
+
+        <link name="link">
+            <visual name="visual">
+                <geometry>
+                    <mesh>
+                        <uri>model://cardboard_box/meshes/cardboard_box.dae</uri>
+                        <scale>1 1 1</scale>
+                    </mesh>
+                </geometry>
+                <!--
+                Dimensions of the cardboard box are: size_x = 0.5 m, size_y = 0.4 m, size_z = 0.3 m.
+                Link of the mesh is at the center of the bottom face of the box.
+                -->
+                <pose>0 0 0 0 0 0</pose>
+            </visual>
+
+            <collision name="collision">
+                <geometry>
+                    <box>
+                        <size>0.5 0.4 0.3</size>
+                    </box>
+                </geometry>
+                <pose>0 0 0.15 0 0 0</pose>
+            </collision>
+
+            <inertial>
+                <!--
+                <mass>2.0</mass>
+                <inertia>
+                    <ixx>0.0417</ixx>
+                    <ixy>0.0</ixy>
+                    <ixz>0.0</ixz>
+                    <iyy>0.0567</iyy>
+                    <iyz>0.0</iyz>
+                    <izz>0.0683</izz>
+                </inertia>
+                -->
+                <mass>0.1</mass>
+                <inertia>
+                    <ixx>0.002083333</ixx>
+                    <ixy>0.000000000</ixy>
+                    <ixz>0.000000000</ixz>
+                    <iyy>0.002833333</iyy>
+                    <iyz>0.000000000</iyz>
+                    <izz>0.003416667</izz>
+                </inertia>
+                <pose>0 0 0.15 0 0 0</pose>
+            </inertial>
+        </link>
+    </model>
+</sdf>
