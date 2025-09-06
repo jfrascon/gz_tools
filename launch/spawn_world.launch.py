@@ -2,6 +2,10 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from catkin_pkg.package import PACKAGE_MANIFEST_FILENAME, InvalidPackage, parse_package
+from launch_ros.actions import LoadComposableNodes, Node
+from launch_ros.descriptions import ComposableNode
+from ros2pkg.api import get_package_names
+
 from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity, Substitution
 from launch.actions import (
     DeclareLaunchArgument,
@@ -15,9 +19,6 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.utilities.type_utils import normalize_typed_substitution, perform_typed_substitution
-from launch_ros.actions import LoadComposableNodes, Node
-from launch_ros.descriptions import ComposableNode
-from ros2pkg.api import get_package_names
 
 # ======================================================================================================================
 # NOTE: If you inclue this python launch file in parent launch, using the action PushRosNamespace along with this
