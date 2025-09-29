@@ -13,7 +13,12 @@
     <exec_depend>ament_index_python</exec_depend>
     <exec_depend>launch</exec_depend>
     <exec_depend>launch_ros</exec_depend>
+    <exec_depend>python3-catkin-pkg</exec_depend>
+    <exec_depend>rclcpp_components</exec_depend>
+    <exec_depend>ros2pkg</exec_depend>
+    <exec_depend>ros_gz_bridge</exec_depend>
     <exec_depend>ros_gz_sim</exec_depend>
+    <exec_depend>rosgraph_msgs</exec_depend>
 
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_lint_common</test_depend>
