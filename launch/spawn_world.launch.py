@@ -21,10 +21,13 @@ from launch.substitutions import LaunchConfiguration
 from launch.utilities.type_utils import normalize_typed_substitution, perform_typed_substitution
 
 # ======================================================================================================================
-# NOTE: If you inclue this python launch file in parent launch, using the action PushRosNamespace along with this
-# launch file, when 'use_composition' is set to True, the composable nodes to load into a container do no get the
-# namespace automatically, when the namespace is different from pure '/', so they do not find the container
-# (namespaced), and they are not loaded.
+# NOTE: To include the nodes used in this launch file in a namespace, do not use the action PushRosNamespace in
+# conjunction with this launch file in a parent launch file, just pass the namespace as a parameter to this launch file.
+
+# If you inclue this python launch file in parent launch, using the action PushRosNamespace along with this launch
+# file, when 'use_composition' is set to True, the composable nodes to load into a container do no get the namespace
+# defined in the PushRosNamespace action automatically, when the namespace is different from pure '/', so they do not
+# find the container (namespaced), and they are not loaded.
 # There is PR to solve that issue, in which composable nodes get the namespace automatically, but this PR has not been
 # merged yet (2025-08-06) since it is no clear the approach the ROS community wants to follow, regarding inhering the
 # namespace for composable nodes.
@@ -39,7 +42,7 @@ from launch.utilities.type_utils import normalize_typed_substitution, perform_ty
 # 'ros_gz_sim.launch.py', which is convenient to launch the Gazebo server and a bridge to transfer topics between ROS2
 # and Gazebo.
 # Internally that launch file uses the actions GzServer and RosGzBridge to launch the Gazebo server and the bridge.
-# There is a parameter that the action GZServer defines, 'initial_sim_time', that is not defined in the launch file
+# There is a parameter that the action GzServer defines, 'initial_sim_time', that is not defined in the launch file
 # 'ros_gz_sim.launch.py', so if you use that launch file, by including it in this launch file, you will not be able to
 # set the initial simulation time and forward it to the GZServer action, in the rare case you need to do that.
 # So, you might be wondering: is it really necessary to set the initial simulation time in a project?
@@ -51,8 +54,9 @@ from launch.utilities.type_utils import normalize_typed_substitution, perform_ty
 # So, next obvious step was to include the actions GzServer and RosGzBridge directly in this launch file and use them,
 # the same way the launch file 'ros_gz_sim.launch.py' does, but know we can pass the 'initial_sim_time' parameter to the
 # GzServer action.
-# Well, no, using GzServer action is not a good idea. The action does not include a parameter 'namespace', so
-# in the case you want to use composition and load the gzserver into an already existing container.
+# Well ..., not really, using GzServer action is not a good idea. The action does not include a parameter 'namespace',
+# so in the case you want to use composition and load the gzserver into an already existing container, you will not be
+# able to specify the fully qualified name using the namespace + container name.
 # So, if we are not going to use the GzServer actions, we can omit using the action RosGzBridge, as well, and
 # manage the composable nodes directly in this launch file w/o the syntactic sugar of these actions, and in fact this
 # is not difficult at all the code is very understandable.
@@ -84,7 +88,7 @@ from launch.utilities.type_utils import normalize_typed_substitution, perform_ty
 #         {"bridges.clock_bridge.qos_profile": "CLOCK"},
 #     ],
 # )
-# 3. Using the same node 'parameter_bridge' from the package 'ros_gz_bridge', but using the arguments instead of
+# 3. Using the node 'parameter_bridge' from the package 'ros_gz_bridge', but using the arguments instead of
 # parameters.
 # Node(
 #         package='ros_gz_bridge',
@@ -194,10 +198,6 @@ def create_composable_nodes(ctx: LaunchContext) -> list[LaunchDescriptionEntity]
     """
     Create the Gazebo server and the clock bridge using composable nodes.
     """
-
-    # From this line onwards, we apend to the 'actions' list of actions to launch Gazebo server (GUI optional) and
-    # the clock bridge.
-
     # (L)aunch (d)escription (e)ntitie(s)
     ldes: list[LaunchDescriptionEntity] = []
 
@@ -300,16 +300,16 @@ def create_standard_nodes(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     Create the Gazebo server and the clock bridge standard nodes.
     """
     # Standard node configuration
-    # When no using composition, it makes more sense to use directy the 'gz sim' command, instead of using
-    # the Node 'gzserver', since the 'gzserver' node does no include some interesting parameters that we
-    # can pass to the 'gz sim' command, like:
-    # - The verbosity level, from 0 to 4. The gzserver node that launches the Gazebo server sets the
-    #   verbosity level to a fix value of 4 (too verbose).
+    # When no using composition, it makes more sense to use directy the 'gz sim' command,  the one you would use
+    # from a terminal, instead of using the Node 'gzserver', since the 'gzserver' node does no include some interesting
+    # parameters that we can pass to the 'gz sim' command, like:
+    # - The verbosity level, from 0 to 4. The gzserver node that launches the Gazebo server sets the verbosity level to
+    #   a fix value of 4 (too verbose).
     # - Autostart flag, to control whether the simulation starts automatically or not.
     # - The update rate in Hertz.
     # There are many more parameters that can be passed to the 'gz sim' command, but these are what I find
     # more useful for a regular basis use.
-    # To check the parameters that can be passed to the 'gz sim' command, you can run:
+    # To check the parameters that can be passed to the 'gz sim' command, you can run in a terminal:
     # gz sim --help
     gz_args: list[str] = []
 

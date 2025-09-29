@@ -7,17 +7,21 @@ from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction, SetLaunchConfiguration
 from launch.substitutions import LaunchConfiguration
 
-# THERE IS NO NEED TO PUSH THIS PYTHON LAUNCH FILE INTO A NAMESPACE WHEN IT IS INCLUDED IN ANOTHER LAUNCH FILE, SINCE
-# THE 'CREATE' EXECUTABLE INJECTS THE ROBOT DESCRIPTION INTO GAZEBO AND THEN IT STOPS RUNNING.
+# THERE IS NO NEED TO PUSH THIS PYTHON LAUNCH FILE INTO A NAMESPACE, using PushRosNamespace, WHEN IT IS INCLUDED IN
+# ANOTHER LAUNCH FILE, SINCE THE 'CREATE' EXECUTABLE INJECTS THE ROBOT DESCRIPTION INTO GAZEBO AND THEN IT STOPS
+# RUNNING.
 # This python launch file uses the node 'create' from the package 'ros_gz_sim' to spawn a robot in Gazebo Sim.
+
+# IMPORTANT NOTE:
+# We are considering that the 'world name' is the same as the 'world file name' without the extension.
+# If this is not the case, the world will not be found in Gazebo Sim.
 
 # If you are familiar with the package 'ros_gz_sim', you might know that there is a launch file in that package called
 # 'ros_gz_spawn_model.launch.py' that is used to spawn a robot in Gazebo Sim.
 # However, that launch file run also a RosGzBridge action to bridge the topics between ROS2 and Gazebo, for the sensors
 # that the robot uses, like cameras, lidars, etc., among others.
-# In our workflow, the python launch file to publish the robot description for a particular model of a robot knows the
-# set of sensor that robot uses, etc., and it is responsible for launching the bridges to transfer topics between ROS2
-# and Gazebo.
+# In our workflow, the bridges to transfer topics between Gazebo and ROS2 are launched should not be launched from
+# the 'ros_gz_spawn_model.launch.py' launch file.
 # For this reason, we do not use the launch file 'ros_gz_spawn_model.launch.py' and implement our own logic to spawn
 # the robot in Gazebo Sim.
 # If you look into the file 'ros_gz_spawn_model.launch.py', you will see that it uses:
