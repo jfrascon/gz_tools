@@ -96,8 +96,8 @@ from launch.utilities.type_utils import normalize_typed_substitution, perform_ty
 #         name='clock_gz_bridge',
 #         output='screen'4188202149517441,
 #         # Descriptions at:
-#         # Reference: https://github.com/gazebosim/ros_gz/tree/77522600db37d49a23e349c6e109b08caa621188/ros_gz_bridge#readme
-#         # Referente: https://github.com/gazebosim/ros_gz/blob/77522600db37d49a23e349c6e109b08caa621188/ros_gz_bridge/src/parameter_bridge.cpp#L30
+#         # Reference: https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge#readme
+#         # Referente: https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_bridge/src/parameter_bridge.cpp#L30
 #         arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
 #     )
 # 4. Using the executable directly, like we do in this launch file.
