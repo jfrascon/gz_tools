@@ -1,21 +1,20 @@
 import os
+from pathlib import Path
 
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from catkin_pkg.package import PACKAGE_MANIFEST_FILENAME, InvalidPackage, parse_package
-from launch_ros.actions import LoadComposableNodes, Node
-from launch_ros.descriptions import ComposableNode
+from launch_ros.actions import Node
 from ros2pkg.api import get_package_names
 
-from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity, Substitution
+from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
     SetEnvironmentVariable,
-    SetLaunchConfiguration,
 )
-from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.utilities.type_utils import normalize_typed_substitution, perform_typed_substitution
@@ -107,22 +106,26 @@ from launch.utilities.type_utils import normalize_typed_substitution, perform_ty
 
 def generate_launch_description():
     # (L)aunch (d)escription (e)ntitie(s)
-    ldes: list[LaunchDescriptionEntity] = []
-
-    ldes += [
+    ldes: list[LaunchDescriptionEntity] = [
         DeclareLaunchArgument(name='namespace', default_value='', description='Namespace'),
+        DeclareLaunchArgument(
+            'world_file', default_value='empty.sdf', description='World file w/o parent path (default: empty.sdf)'
+        ),
         DeclareLaunchArgument(
             'gui',
             default_value='False',
             choices=['True', 'true', 'False', 'false'],
             description='Run Gazebo Sim with GUI. If False, run in headless mode (default: False)',
         ),
-        DeclareLaunchArgument(
-            'initial_sim_time', default_value='0.0', description='Initial simulation time in seconds (default: 0.0)'
-        ),
         DeclareLaunchArgument('gui_config_file', default_value='', description='Gazebo GUI configuration file to load'),
         DeclareLaunchArgument(
-            'world_file', default_value='empty.sdf', description='World file w/o parent path (default: empty.sdf)'
+            'autostart',
+            default_value='True',
+            choices=['True', 'true', 'False', 'false'],
+            description='Run simulation on start. Available if use_composition is False (default: True)',
+        ),
+        DeclareLaunchArgument(
+            'initial_sim_time', default_value='0.0', description='Initial simulation time in seconds (default: 0.0)'
         ),
         DeclareLaunchArgument(
             'verbosity',
@@ -133,56 +136,24 @@ def generate_launch_description():
             ),
         ),
         DeclareLaunchArgument(
-            'autostart',
-            default_value='True',
-            choices=['True', 'true', 'False', 'false'],
-            description='Run simulation on start. Available if use_composition is False (default: True)',
-        ),
-        DeclareLaunchArgument(
             'update_rate',
             default_value='',
             description='Update rate in Hertz. Available if use_composition is False (default: ?)',
         ),
-        # For more information about composition when using ROS2 + Gazebo, visit the URL
-        # 'https://gazebosim.org/docs/harmonic/ros2_overview/#composition'
         DeclareLaunchArgument(
-            'use_composition',
-            default_value='false',
-            choices=['True', 'true', 'False', 'false'],
-            description='Use compose bringup if True for the Gazebo server (default: False)',
-        ),
-        DeclareLaunchArgument(
-            'create_own_container',
-            default_value='True',
-            choices=['True', 'true', 'False', 'false'],
-            description='Whether we should start our own ROS container when using composition.',
-        ),
-        DeclareLaunchArgument(
-            'container_name',
-            default_value='rosgz_container',
-            description='Name of container that nodes will load in if use composition',
-        ),
-        DeclareLaunchArgument(
-            'respawn_clock_bridge',
+            'respawn_rosgz_bridge',
             default_value='False',
             choices=['True', 'true', 'False', 'false'],
-            description='Whether to respawn the clock bridge if it dies (default: False)',
+            description='Whether to respawn the rosgz_bridge_node if it dies (default: False)',
         ),
         DeclareLaunchArgument(
-            'clock_bridge_log_level',
+            'log_level_rosgz_bridge',
             default_value='info',
             choices=['debug', 'info', 'warn', 'error'],
-            description='Log level for the clock bridge (default: info)',
+            description='Log level for the rosgz_bridge_node (default: info)',
         ),
         OpaqueFunction(function=set_environment_variables),
-    ]
-
-    use_composition = LaunchConfiguration('use_composition')
-
-    ldes += [
-        SetLaunchConfiguration('bridge_name', 'rosgz_bridge_clock'),
-        OpaqueFunction(function=create_composable_nodes, condition=IfCondition(use_composition)),
-        OpaqueFunction(function=create_standard_nodes, condition=UnlessCondition(use_composition)),
+        OpaqueFunction(function=spawn_world),
     ]
 
     return LaunchDescription(ldes)
@@ -194,108 +165,7 @@ def generate_launch_description():
 # Opaque functions.
 
 
-def create_composable_nodes(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
-    """
-    Create the Gazebo server and the clock bridge using composable nodes.
-    """
-    # (L)aunch (d)escription (e)ntitie(s)
-    ldes: list[LaunchDescriptionEntity] = []
-
-    # If the user wants to run Gazebo Sim in headless mode, we do not launch the GUI.
-    # If the user also wants Gazebo's GUI, we launch the GUI with the configuration file specified by the user, or
-    # with the default configuration file 'eut_gz_models/config/gui.config' if the user does not specify a
-    # configuration file.
-
-    # Check if the Gazebo GUI must be launched.
-    gui = perform_typed_substitution(ctx, normalize_typed_substitution(LaunchConfiguration('gui'), bool), bool)
-
-    if gui:
-        gz_args: list[str | Substitution] = ['-g']  # Start only the GUI client.
-        gui_config_file = LaunchConfiguration('gui_config_file').perform(ctx)
-
-        if gui_config_file:
-            gz_args.extend([' --gui-config ', gui_config_file])
-
-        # The following include does not run a ROS node, it launches an executable 'ruby $(which gz) sim ...', (see
-        # ros_gz_sim/launch/gz_sim.launch.py), so the 'use_sim_time' and namespace parameters are not understood by
-        # this executable.
-        ldes.append(
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(
-                    os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
-                ),
-                launch_arguments={'gz_args': gz_args}.items(),
-            )
-        )
-
-    container_name = LaunchConfiguration('container_name').perform(ctx)
-    namespace = LaunchConfiguration('namespace').perform(ctx)
-
-    create_own_container = perform_typed_substitution(
-        ctx, normalize_typed_substitution(LaunchConfiguration('create_own_container'), bool), bool
-    )
-
-    # Check if a new container is required or not.
-    if create_own_container:
-        # Append the new created container.
-        ldes.append(
-            Node(
-                package='rclcpp_components',
-                executable='component_container',
-                name=container_name,
-                namespace=namespace,
-                output='screen',
-            )
-        )
-
-    if namespace in ('', '/'):
-        target_container = namespace + container_name
-    else:
-        # Make sure the namespace does not end with a slash, to avoid '//' in the target_container name.
-        # Once we are sure no trailing '/' is present, we can concatenate the namespace, a '/' and the container name.
-        target_container = namespace.rstrip('/') + '/' + container_name
-
-    bridge_name = LaunchConfiguration('bridge_name').perform(ctx)
-
-    # Composable nodes that are launched in a just created container, or in an existing container.
-    ldes.append(
-        LoadComposableNodes(
-            target_container=target_container,
-            composable_node_descriptions=[
-                ComposableNode(
-                    package='ros_gz_sim',
-                    plugin='ros_gz_sim::GzServer',
-                    name='rosgz_server',
-                    namespace=namespace,
-                    parameters=[
-                        {
-                            'world_sdf_file': LaunchConfiguration('world_file').perform(ctx),
-                            'world_sdf_string': '',
-                            # The gzserver requires the initial_sim_time parameter to be a float.
-                            'initial_sim_time': perform_typed_substitution(
-                                ctx, normalize_typed_substitution(LaunchConfiguration('initial_sim_time'), float), float
-                            ),
-                            # 'use_sim_time': , # No need to use for a node that does no access time.
-                        }
-                    ],
-                    extra_arguments=[{'use_intra_process_comms': True}],
-                ),
-                ComposableNode(
-                    package='ros_gz_bridge',
-                    plugin='ros_gz_bridge::RosGzBridge',
-                    name=bridge_name,
-                    namespace=namespace,
-                    parameters=[get_bridge_params(bridge_name)],
-                    extra_arguments=[{'use_intra_process_comms': True}],
-                ),
-            ],
-        )
-    )
-
-    return ldes
-
-
-def create_standard_nodes(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
+def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     """
     Create the Gazebo server and the clock bridge standard nodes.
     """
@@ -350,6 +220,8 @@ def create_standard_nodes(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     if update_rate:
         gz_args.extend([' -z', update_rate])
 
+    world_file = LaunchConfiguration('world_file').perform(ctx)
+
     gz_args.extend(
         [
             ' --initial-sim-time ',
@@ -357,11 +229,36 @@ def create_standard_nodes(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
             ' -v',
             LaunchConfiguration('verbosity').perform(ctx),
             ' ',
-            LaunchConfiguration('world_file').perform(ctx),
+            world_file,
         ]
     )
 
-    bridge_name = LaunchConfiguration('bridge_name').perform(ctx)
+    ros_home = Path(os.environ.get('ROS_HOME', os.path.expanduser('~/.ros')))
+    namespace = LaunchConfiguration('namespace').perform(ctx).strip()
+    suffix = f'{world_file}_rosgz_bridge.yaml'
+    rosgz_bridge_file = suffix if namespace in ('', '/') else namespace.strip('/').replace('/', '_') + '_' + suffix
+    abs_rosgz_bridge_file = os.path.join(ros_home, rosgz_bridge_file)
+    abs_rosgz_bridge_path = Path(abs_rosgz_bridge_file)
+
+    # Make sure the parent directory exists.
+    abs_rosgz_bridge_path.parent.mkdir(parents=True, exist_ok=True)
+
+    rosgz_bridge_channel = [
+        {
+            'ros_topic_name': '/clock',
+            'gz_topic_name': '/clock',
+            'ros_type_name': 'rosgraph_msgs/msg/Clock',
+            'gz_type_name': 'gz.msgs.Clock',
+            'direction': 'GZ_TO_ROS',
+            'qos_profile': 'CLOCK',
+            'lazy': False,
+        }
+    ]
+
+    with abs_rosgz_bridge_path.open('w', encoding='utf-8') as f:
+        yaml.safe_dump(
+            rosgz_bridge_channel, stream=f, sort_keys=False, default_flow_style=False, allow_unicode=True, width=120
+        )
 
     return [
         # The Node(...) action is left here for reference.
@@ -385,13 +282,20 @@ def create_standard_nodes(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         Node(
             package='ros_gz_bridge',
             executable='bridge_node',
-            name=bridge_name,
-            namespace=LaunchConfiguration('namespace'),
+            name='rosgz_bridge_clock',
+            namespace=namespace,
             output='screen',
-            respawn=LaunchConfiguration('respawn_clock_bridge'),
+            respawn=LaunchConfiguration('respawn_rosgz_bridge'),
             respawn_delay=2.0,
-            parameters=[get_bridge_params(bridge_name)],
-            arguments=['--ros-args', '--log-level', LaunchConfiguration('clock_bridge_log_level')],
+            parameters=[
+                {
+                    'subscription_heartbeat': 1000,  # default value in 'ros_gz_bridge.cpp''
+                    'config_file': abs_rosgz_bridge_file,
+                    'expand_gz_topic_names': False,  # We want to use exact topic names.
+                    'override_timestamps_with_wall_time': False,  # Not needed for /clock
+                }
+            ],
+            arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level_rosgz_bridge')],
         ),
     ]
 
@@ -453,31 +357,6 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
 
 
 # Non-opaque functions
-
-
-def get_bridge_params(bridge_name: str):
-    return {
-        'subscription_heartbeat': 1000,  # default value in 'ros_gz_bridge.cpp'
-        'expand_gz_topic_names': True,
-        'bridge_names': [bridge_name],
-        f'bridges.{bridge_name}.ros_topic_name': '/clock',
-        f'bridges.{bridge_name}.gz_topic_name': '/clock',
-        f'bridges.{bridge_name}.ros_type_name': 'rosgraph_msgs/msg/Clock',
-        f'bridges.{bridge_name}.gz_type_name': 'gz.msgs.Clock',
-        f'bridges.{bridge_name}.direction': 'GZ_TO_ROS',
-        f'bridges.{bridge_name}.qos_profile': 'CLOCK',
-        # Lazy subscription policy
-        # Many bridges default to 'lazy: true' to avoid spinning up internal publishers/subscribers unless a
-        # real client appears on the opposite side.
-        # lazy = true  -> the bridge activates only when at least one ROS-side or GZ-side subscriber/publisher
-        #                 exists, saving CPU/bandwidth.
-        # lazy = false -> the bridge stays permanently connected, forwarding every message even if no node is
-        #                 currently listening.
-        # For /clock in simulation we normally force 'lazy: false' so the time source is always available as
-        # soon as any ROS node starts.  For secondary topics,
-        f'bridges.{bridge_name}.lazy': False,
-    }
-
 
 # Code extracted from the function 'get_paths' in the class 'GazeboRosPaths', in the file
 # https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_sim/ros_gz_sim/actions/gzserver.py
