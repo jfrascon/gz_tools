@@ -1,7 +1,6 @@
 import os
 
 from launch_ros.actions import Node
-from launch_ros.descriptions import ParameterValue
 
 from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction, SetLaunchConfiguration
@@ -102,27 +101,25 @@ def generate_launch_description():
             package='ros_gz_sim',
             executable='create',
             output='screen',
-            parameters=[
-                {
-                    # The world name is the same as the world file name w/o extension
-                    'world': ParameterValue(LaunchConfiguration('world'), value_type=str),
-                    # Load XML model from a topic
-                    'topic': ParameterValue(LaunchConfiguration('topic'), value_type=str),
-                    # Load XML model from a file not provided here.
-                    # 'file': ParameterValue(LaunchConfiguration('file')),
-                    # Load XML model from a ROS param not provided here.
-                    # 'param': ParameterValue(LaunchConfiguration('param')),
-                    # Load XML model from a ROS string not provided here.
-                    # 'string': ParameterValue(LaunchConfiguration('string')),
-                    'name': ParameterValue(LaunchConfiguration('model_name'), value_type=str),
-                    'allow_renaming': ParameterValue(LaunchConfiguration('allow_renaming'), value_type=bool),
-                    'x': ParameterValue(LaunchConfiguration('x'), value_type=float),
-                    'y': ParameterValue(LaunchConfiguration('y'), value_type=float),
-                    'z': ParameterValue(LaunchConfiguration('z'), value_type=float),
-                    'R': ParameterValue(LaunchConfiguration('R'), value_type=float),
-                    'P': ParameterValue(LaunchConfiguration('P'), value_type=float),
-                    'Y': ParameterValue(LaunchConfiguration('Y'), value_type=float),
-                }
+            arguments=[
+                '-world',
+                LaunchConfiguration('world'),
+                '-topic',
+                LaunchConfiguration('topic'),
+                '-name',
+                LaunchConfiguration('model_name'),
+                '-allow_renaming',
+                LaunchConfiguration('allow_renaming'),
+                '-x',
+                LaunchConfiguration('x'),
+                '-y',
+                LaunchConfiguration('y'),
+                '-z',
+                LaunchConfiguration('z'),
+                '-R',
+                LaunchConfiguration('R'),
+                '-P',
+                LaunchConfiguration('P'),
             ],
         ),
     ]
