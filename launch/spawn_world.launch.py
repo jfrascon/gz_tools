@@ -221,6 +221,12 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         gz_args.extend([' -z', update_rate])
 
     world_file = LaunchConfiguration('world_file').perform(ctx)
+    world_file_path = Path(world_file)
+    world_file_stem = world_file_path.stem
+    world_file_ext = world_file_path.suffix
+
+    if world_file_ext != '.sdf':
+        raise ValueError(f"The world file '{world_file}' does not have the required extension '.sdf'")
 
     gz_args.extend(
         [
@@ -235,7 +241,7 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
 
     ros_home = Path(os.environ.get('ROS_HOME', os.path.expanduser('~/.ros')))
     namespace = LaunchConfiguration('namespace').perform(ctx).strip()
-    suffix = f'{world_file}_rosgz_bridge.yaml'
+    suffix = f'{world_file_stem}_rosgz_bridge.yaml'
     rosgz_bridge_file = suffix if namespace in ('', '/') else namespace.strip('/').replace('/', '_') + '_' + suffix
     abs_rosgz_bridge_file = os.path.join(ros_home, rosgz_bridge_file)
     abs_rosgz_bridge_path = Path(abs_rosgz_bridge_file)
@@ -315,6 +321,9 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
     # plugin_pahts will be added into the environment variable GZ_SIM_PLUGIN_PATH.
     model_paths, plugin_paths = get_gazebo_paths()
 
+    # print(f'Model paths = {model_paths}')
+    # print(f'Plugin paths = {plugin_paths}')
+
     # To spawn a world in Gazebo Sim, you just pass proper value in the parameter 'world_file', like 'empty.sdf' (in
     # default path for Gazebo), or 'sky.sdf' (in default path for Gazebo), or 'maze.sdf' (in eut_gz_models/worlds).
 
@@ -331,6 +340,8 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
         resource_paths.extend([os.path.join(p, 'share') for p in ament_prefix_path.split(os.pathsep)])
         # print(f'Resource paths = {os.pathsep.join(resource_paths)}')
 
+    # print(f'GZ_SIM_RESOURCE_PATH: {os.environ.get("GZ_SIM_RESOURCE_PATH", default="")}')
+
     # All paths, without duplicates.
     all_resource_paths = remove_duplicates(
         resource_paths
@@ -339,6 +350,7 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
     )
 
     gz_sim_resource_path = os.pathsep.join(all_resource_paths)
+    # print(f'gz_sim_resource_path: {gz_sim_resource_path}')
 
     all_plugin_paths = remove_duplicates(
         plugin_paths.split(os.pathsep)
@@ -347,6 +359,7 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
     )
 
     gz_sim_system_plugin_path = os.pathsep.join(all_plugin_paths)
+    # print(f'gz_sim_system_plugin_path: {gz_sim_system_plugin_path}')
 
     return [
         SetEnvironmentVariable(name='GZ_SIM_SYSTEM_PLUGIN_PATH', value=gz_sim_system_plugin_path),
