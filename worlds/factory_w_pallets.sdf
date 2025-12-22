@@ -48,10 +48,7 @@
         -->
         <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact" />
 
-        <!--
-        IMU system. Required if the robot includes Inertial Measurement Units
-        (either simulated or real hardware via ROS 2 interfaces).
-        -->
+        <!-- IMU system. Required if the robot includes inertial measurement units -->
         <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu" />
 
 
