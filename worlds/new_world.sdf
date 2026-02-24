@@ -3535,7 +3535,7 @@
           <geometry>
             <mesh>
               <scale>1 1 1</scale>
-              <uri>file://<urdf-string>/model://eut_robotics_description/meshes/bases/forklift_artisteril_base_closed_low_res.stl</uri>
+              <uri>file://<urdf-string>/model://robotics_description/meshes/bases/forklift_artisteril_base_closed_low_res.stl</uri>
               </mesh>
             </geometry>
             <material>
@@ -3560,7 +3560,7 @@
             <geometry>
               <mesh>
                 <scale>1 1 1</scale>
-                <uri>file://<urdf-string>/model://eut_robotics_description/meshes/extra/fork_tine_low_res.stl</uri>
+                <uri>file://<urdf-string>/model://robotics_description/meshes/extra/fork_tine_low_res.stl</uri>
                 </mesh>
               </geometry>
               <material>
@@ -3573,7 +3573,7 @@
               <geometry>
                 <mesh>
                   <scale>1 1 1</scale>
-                  <uri>file://<urdf-string>/model://eut_robotics_description/meshes/extra/fork_tine_low_res.stl</uri>
+                  <uri>file://<urdf-string>/model://robotics_description/meshes/extra/fork_tine_low_res.stl</uri>
                   </mesh>
                 </geometry>
                 <material>
@@ -3642,7 +3642,7 @@
                 <geometry>
                   <mesh>
                     <scale>1 1 1</scale>
-                    <uri>file://<urdf-string>/model://eut_robotics_description/meshes/wheels/generic_mecanum_wheel_1_right_low_res.stl</uri>
+                    <uri>file://<urdf-string>/model://robotics_description/meshes/wheels/generic_mecanum_wheel_1_right_low_res.stl</uri>
                     </mesh>
                   </geometry>
                   <material>
@@ -3710,7 +3710,7 @@
                   <geometry>
                     <mesh>
                       <scale>1 1 1</scale>
-                      <uri>file://<urdf-string>/model://eut_robotics_description/meshes/wheels/generic_mecanum_wheel_1_left_low_res.stl</uri>
+                      <uri>file://<urdf-string>/model://robotics_description/meshes/wheels/generic_mecanum_wheel_1_left_low_res.stl</uri>
                       </mesh>
                     </geometry>
                     <material>
@@ -3778,7 +3778,7 @@
                     <geometry>
                       <mesh>
                         <scale>1 1 1</scale>
-                        <uri>file://<urdf-string>/model://eut_robotics_description/meshes/wheels/generic_mecanum_wheel_1_left_low_res.stl</uri>
+                        <uri>file://<urdf-string>/model://robotics_description/meshes/wheels/generic_mecanum_wheel_1_left_low_res.stl</uri>
                         </mesh>
                       </geometry>
                       <material>
@@ -3846,7 +3846,7 @@
                       <geometry>
                         <mesh>
                           <scale>1 1 1</scale>
-                          <uri>file://<urdf-string>/model://eut_robotics_description/meshes/wheels/generic_mecanum_wheel_1_right_low_res.stl</uri>
+                          <uri>file://<urdf-string>/model://robotics_description/meshes/wheels/generic_mecanum_wheel_1_right_low_res.stl</uri>
                           </mesh>
                         </geometry>
                         <material>
