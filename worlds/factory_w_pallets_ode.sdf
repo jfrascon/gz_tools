@@ -3,7 +3,7 @@
     <!--
     It is strongly recommended to use for the file name the same string as the world name.
     -->
-    <world name="factory_w_pallets">
+    <world name="factory_w_pallets_ode">
 
         <atmosphere type='adiabatic' />
         <gravity>0 0 -9.8</gravity>
