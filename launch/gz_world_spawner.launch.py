@@ -185,7 +185,7 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
 
     # If the user wants to run Gazebo Sim in headless mode, we do not launch the GUI.
     # If the user also wants Gazebo's GUI, we launch the GUI with the configuration file specified by the user, or
-    # with the default configuration file 'eut_gz_models/config/gui.config' if the user does not specify a
+    # with the default configuration file 'gz_tools/config/gui.config' if the user does not specify a
     # configuration file.
     gui = perform_typed_substitution(ctx, normalize_typed_substitution(LaunchConfiguration('gui'), bool), bool)
 
@@ -198,7 +198,7 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         gz_args.extend([' --gui-config ', gui_config_file])
     else:
         gz_args.extend(
-            [' --gui-config ', os.path.join(get_package_share_directory('eut_gz_models'), 'config', 'gui.config')]
+            [' --gui-config ', os.path.join(get_package_share_directory('gz_tools'), 'config', 'gui.config')]
         )
 
     autostart = perform_typed_substitution(
@@ -325,7 +325,7 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
     # print(f'Plugin paths = {plugin_paths}')
 
     # To spawn a world in Gazebo Sim, you just pass proper value in the parameter 'world_file', like 'empty.sdf' (in
-    # default path for Gazebo), or 'sky.sdf' (in default path for Gazebo), or 'maze.sdf' (in eut_gz_models/worlds).
+    # default path for Gazebo), or 'sky.sdf' (in default path for Gazebo), or 'maze.sdf' (in gz_tools/worlds).
 
     # We need to set the GZ_SIM_RESOURCE_PATH environment variable properly to find the meshes used in the
     # robot_description topics.

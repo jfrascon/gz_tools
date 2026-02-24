@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>eut_gz_models</name>
+    <name>gz_tools</name>
     <version>1.0.0</version>
     <description>A package containing simulation models, worlds, and other assets for Gazebo.</description>
     <maintainer email="juan.rascon@eurecat.org">Juan Fco Rascon</maintainer>
