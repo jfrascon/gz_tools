@@ -1,111 +1,176 @@
-# From 2D floor plan (PDF/PNG) to STL and Gazebo SDF in ROS2
+# Floor Plan To STL Workflow
 
-## Phase 1: Vectorize and simplify walls
+This document explains the workflow used in this package to convert a 2D floor plan into one STL mesh that can be
+referenced from a Gazebo world.
+
+The conversion pipeline expects one specific image convention:
+
+- black pixels represent walls or obstacles
+- white pixels represent free space
+
+If the exported image does not follow that convention, the generated STL will not represent the intended geometry.
+
+## Phase 1: Trace The Walls In Inkscape
+
+Goal of this phase:
+create one clean 2D wall geometry that can later be exported as a black-and-white PNG.
 
 1. Open the floor-plan PDF in Inkscape.
-2. Create a new layer and name it "Walls".
-3. Select the "Draw Bezier curves" tool (pen).
-4. Draw straight lines over the main walls in the floor plan.
-5. Select all the lines you drew.
-6. Set the stroke color to pure black (`#000000`).
-7. Adjust stroke width so it matches the real wall width and keep it consistent across the whole plan. Avoid very thin strokes so they do not break when exporting to PNG.
-8. Open the "Fill and Stroke" panel and go to the "Stroke style" tab.
-9. Set caps to straight (`butt`) and joins to straight (`miter`). Avoid rounded styles to keep corners clean and geometrically stable.
-10. Leave white gaps where doors are. The robot will pass through those openings.
-11. Select all black strokes.
-12. In the top menu, click **Path > Stroke to Path**. This converts simple lines into closed wall shapes.
-13. Without deselecting, click **Path > Union**. Then verify the result is one clean geometry: no loose pieces ("islands"), no self-intersections, and no micro-gaps between walls. This check prevents the STL generator from discarding invalid polygons.
+2. Create a new layer named `Walls`.
+3. Select the Bezier or pen tool.
+4. Draw the wall centerlines or wall outlines that you want to keep in simulation.
+5. Select all the new wall strokes.
+6. Set the stroke color to pure black, `#000000`.
+7. Adjust the stroke width so it matches the real wall thickness and keep that width consistent across the plan.
+8. In **Fill and Stroke > Stroke style**, set caps to `butt` and joins to `miter`.
+9. Leave white gaps where doors or other openings must remain traversable.
+10. Convert the strokes into filled wall polygons with **Path > Stroke to Path**.
+11. Merge all wall polygons with **Path > Union**.
+12. Inspect the result and remove loose islands, self-intersections, and tiny gaps.
 
-## Phase 2: Export the drawing to PNG
+The important output of this phase is one clean vector geometry that represents only the walls you want to extrude.
 
-Goal of this phase: export a clean image where walls are black and free space is white.
-This is the format expected by the STL conversion script.
+## Phase 2: Export The PNG Used By The Generator
 
-1. Hide the original PDF layer. Only your wall drawing should be visible.
-2. Verify walls are pure black (`#000000`).
-3. Select the wall drawing.
-4. Open the export panel with **File > Export**.
-5. Choose the **Selection** tab.
-6. Set **300** in the **DPI** field.
-7. In the export panel, set **Background** to pure white with 100% opacity (`ffffffff`).
-8. Click "Export" and save the image with any name you want.
+Goal of this phase:
+export one raster image where the wall geometry is black and the background is white.
 
-## Phase 3: Compute the scale
+1. Hide the original PDF layer.
+2. Leave visible only the wall geometry prepared in Phase 1.
+3. Verify again that the walls are pure black.
+4. Open **File > Export**.
+5. Export the selection, not the full page.
+6. Set the export DPI to `300`.
+7. Set the background color to opaque white, `ffffffff`.
+8. Export the PNG.
 
-Goal of this phase: compute resolution in meters per pixel (`m/px`) so the 2D plan is converted at real scale in 3D.
+The important output of this phase is one PNG where black means wall and white means free space.
 
-1. Get the real-world distance in meters of one wall in your modeled environment, preferably a long wall.
-2. In the exported PNG, measure how many pixels that same wall occupies.
-3. Compute resolution with this formula: `resolution = meters / pixels`.
-4. Example: if the wall is `19.40 m` and occupies `1542 px`, then `19.40 / 1542 = 0.01258 m/px`.
-5. The longer the wall used for the measurement, the lower the relative resolution error tends to be.
-6. Save this value: it is the value you must pass to the script as the resolution parameter.
+## Phase 3: Compute The Resolution
 
-## Phase 4: Run the scripts to generate the STL
+Goal of this phase:
+compute the real-world scale used to convert pixels into meters.
 
-Goal of this phase: generate the final STL at the correct scale from the PNG image and computed resolution.
+1. Pick one wall whose real length is known in meters.
+2. Measure the same wall in the exported PNG, in pixels.
+3. Compute:
 
-1. Place these scripts in the same folder: `build_stl_from_png.sh` and `build_stl_from_png.py`, together with your PNG image.
-2. Open a terminal in that folder.
-3. Give execution permissions to the Bash script:
-`chmod +x build_stl_from_png.sh`
-4. Run the script with positional parameters:
-`./build_stl_from_png.sh <image.png> <output.stl> <resolution_m_per_pixel> <height_m>`
-5. Real example:
-`./build_stl_from_png.sh planta.png planta.stl 0.01258 2.5`
-6. The script creates/reuses a virtual environment in `/tmp/build_stl_from_png`, installs dependencies, and runs the conversion.
-7. If everything is correct, the STL appears at the output path you provided.
-
-## Phase 5: Review and adjust the STL coordinate system
-
-Goal of this phase: understand the generated STL orientation and place its frame in a more convenient convention for simulation.
-
-1. The STL is generated following image-coordinate conventions:
-   `X` increases to the right, `Y` increases downward, and `Z` is perpendicular to the image plane (right-hand rule).
-2. This convention is normal in image processing because it is based on pixel indexing (row/column).
-3. For 3D simulation, it is usually more practical to use `Z` pointing upward.
-4. MeshLab is recommended to reorient the STL.
-5. To flip orientation and make `Z` point upward, rotate the STL **180 degrees around the X axis**.
-   In MeshLab: **Filters > Normals, Curvatures and Orientation > Transform: Rotate, Translate, Center**, then set `Axis = X` and `Angle = 180°`.
-6. After rotation, you can translate the STL in `X`, `Y`, and `Z` as needed to place the model frame.
-7. Practical recommendation: place the frame at the center of the model's bottom face.
-   In MeshLab: **Filters > Normals, Curvatures and Orientation > Transform: Rotate, Translate, Center**. Center the model in `X` and `Y`, then adjust `Z` translation so the base lies at `Z = 0`.
-8. Using adjustments from steps 5 and 7, the coordinate ranges become:
-   `X` in `[-X_max/2, X_max/2]`, `Y` in `[-Y_max/2, Y_max/2]`, and `Z` in `[0, Z_max]`.
-
-## Phase 6: Use the STL in Gazebo
-
-Goal of this phase: reference the STL inside an SDF world using ROS 2 package paths (`package://`).
-
-1. Place the STL inside the package, for example at:
-   `gz_tools/meshes/office_environment_1/office_environment_1.stl`.
-2. Open the SDF world where you want to use the environment. Real example:
-   `gz_tools/worlds/office_environment_1.sdf`.
-3. Add a static model with both `visual` and `collision` using the same mesh.
-4. Use package URIs (not `file://`) so it works correctly in ROS 2:
-
-   ```xml
-   <model name="office_environment_1">
-     <static>true</static>
-     <link name="link">
-       <visual name="visual">
-         <geometry>
-           <mesh>
-             <uri>package://gz_tools/meshes/office_environment_1/office_environment_1.stl</uri>
-           </mesh>
-         </geometry>
-       </visual>
-       <collision name="collision">
-         <geometry>
-           <mesh>
-             <uri>package://gz_tools/meshes/office_environment_1/office_environment_1.stl</uri>
-           </mesh>
-         </geometry>
-       </collision>
-     </link>
-     <pose>0 0 0 0 0 0</pose>
-   </model>
+   ```text
+   resolution_m_per_px = wall_length_m / wall_length_px
    ```
 
-5. Save the `.sdf`.
-6. Launch the world and verify the environment appears with correct visualization and collisions.
+4. Example:
+
+   ```text
+   19.40 m / 1542 px = 0.01258 m/px
+   ```
+
+Use the longest reliable wall you have. Longer measurements reduce the relative scaling error.
+
+## Phase 4: Generate The STL
+
+Goal of this phase:
+extrude the black wall polygons into one STL mesh at the correct real-world scale.
+
+Required files:
+
+- `build_stl_from_png.sh`
+- `build_stl_from_png.py`
+- the PNG exported in Phase 2
+
+Recommended command:
+
+```bash
+./build_stl_from_png.sh <image.png> <output.stl> <resolution_m_per_px> <height_m>
+```
+
+Real example:
+
+```bash
+./build_stl_from_png.sh planta.png planta.stl 0.01258 2.5
+```
+
+What the Bash wrapper does:
+
+- creates or reuses a virtual environment in `/tmp/build_stl_from_png`
+- installs the Python dependencies needed by the generator
+- runs the Python generator with the provided inputs
+
+If the command succeeds, the requested STL file is written at `output.stl`.
+
+## Phase 5: Reorient The STL For Simulation
+
+Goal of this phase:
+move from image coordinates to a mesh frame that is easier to use in Gazebo.
+
+The raw STL follows the image convention used during extrusion:
+
+- `X` increases to the right
+- `Y` increases downward
+- `Z` is perpendicular to the image plane
+
+That convention is normal for image processing, but it is usually not the most convenient frame for simulation.
+
+Recommended workflow in MeshLab:
+
+1. Open the STL.
+2. Rotate the mesh `180` degrees around the `X` axis.
+3. Translate the mesh so the model frame is where you want it.
+
+One practical convention is:
+
+- center the model in `X`
+- center the model in `Y`
+- place the floor-contact face at `Z = 0`
+
+That convention makes the STL easier to reuse as a static environment mesh in Gazebo.
+
+## Phase 6: Reference The STL From An SDF World
+
+Goal of this phase:
+use the generated STL from a Gazebo world that belongs to this ROS package.
+
+1. Place the STL under this package, for example:
+
+   ```text
+   ros_gz_tools/meshes/office_environment_1/office_environment_1.stl
+   ```
+
+2. Open the target world SDF, for example:
+
+   ```text
+   ros_gz_tools/worlds/office_environment_1.sdf
+   ```
+
+3. Add a static model that uses the STL in both the `visual` block and the `collision` block.
+4. Reference the STL with a `package://ros_gz_tools/...` URI, not `file://`.
+
+Example:
+
+```xml
+<model name="office_environment_1">
+  <static>true</static>
+  <link name="link">
+    <visual name="visual">
+      <geometry>
+        <mesh>
+          <uri>package://ros_gz_tools/meshes/office_environment_1/office_environment_1.stl</uri>
+        </mesh>
+      </geometry>
+    </visual>
+    <collision name="collision">
+      <geometry>
+        <mesh>
+          <uri>package://ros_gz_tools/meshes/office_environment_1/office_environment_1.stl</uri>
+        </mesh>
+      </geometry>
+    </collision>
+  </link>
+  <pose>0 0 0 0 0 0</pose>
+</model>
+```
+
+Using the same mesh in both blocks means:
+
+- Gazebo renders the same geometry that it uses for collisions
+- the visual world and the collision world stay aligned
