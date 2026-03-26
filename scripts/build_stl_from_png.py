@@ -33,7 +33,7 @@ def generate_default_output_path():
     except (OSError, subprocess.CalledProcessError):
         pass
 
-    # Fallback if mktemp command is unavailable.
+    # Fall back to Python's tempfile helpers when `mktemp` is not available.
     fd, output_path = tempfile.mkstemp(dir='/tmp', prefix=f'{date_prefix}-', suffix='.stl')
     os.close(fd)
     return output_path
@@ -99,14 +99,14 @@ def generate_stl(image_path, output_path, resolution, height):
         sys.exit(1)
 
     print(f'Loading image: {image_path}...')
-    # Read as grayscale so thresholding and contour detection are deterministic.
+    # Read the image in grayscale so thresholding does not depend on color data.
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
     if img is None:
         print(f"Error: Could not load image from '{image_path}'.", file=sys.stderr)
         sys.exit(1)
 
-    # Invert binary image so black obstacles become foreground for contour extraction.
+    # Invert the binary image so black walls become foreground polygons.
     _, thresh = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY_INV)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -114,11 +114,13 @@ def generate_stl(image_path, output_path, resolution, height):
 
     for i, contour in enumerate(contours):
         if len(contour) >= 3:
-            # Use the original contour to avoid self-intersections introduced by simplification.
+            # Use the original contour points. Additional simplification can
+            # create self-intersections and invalid polygons.
             points_2d = contour.reshape(-1, 2) * resolution
             poly = Polygon(points_2d)
 
-            # Only extrude valid polygons with non-zero area.
+            # Only extrude polygons that Shapely considers valid and that
+            # actually enclose a non-zero area.
             if poly.is_valid and poly.area > 0:
                 try:
                     mesh = trimesh.creation.extrude_polygon(poly, height=height)
@@ -127,7 +129,8 @@ def generate_stl(image_path, output_path, resolution, height):
                     print(f'Warning: Polygon {i} skipped due to geometry error: {e}', file=sys.stderr)
 
     if mesh_list:
-        # Merge obstacle meshes into one STL for easier downstream consumption.
+        # Export a single STL because downstream Gazebo usage expects one mesh
+        # file for the whole environment.
         final_mesh = trimesh.util.concatenate(mesh_list)
         final_mesh.export(output_path)
         print(f'Success! STL saved as: {output_path}')
