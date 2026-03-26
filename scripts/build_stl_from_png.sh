@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Print command usage and argument descriptions.
+# Print the command contract exactly as the caller should use it.
 usage() {
     cat <<'EOF'
 Usage:
@@ -21,10 +21,10 @@ Positional arguments (required):
 EOF
 }
 
-# Emit timestamped log messages in UTC.
+# Print UTC timestamps so logs stay comparable across machines and shells.
 log() { printf '[%s] %s\n' "$(date -u +'%Y-%m-%d_%H-%M-%S')" "$*"; }
 
-# Fail fast when a required command is not available.
+# Stop early when a required command is missing.
 require_cmd() {
     local cmd="$1"
     if ! command -v "${cmd}" >/dev/null 2>&1; then
@@ -33,11 +33,13 @@ require_cmd() {
     fi
 }
 
-# Install system package that provides python3 venv support.
+# Install the distro package that provides `python3 -m venv`.
 install_python_venv_package() {
     require_cmd apt-get
 
-    # Install venv support from distro packages when ensurepip is missing.
+    # Some minimal Python installations do not ship `ensurepip`, so `venv`
+    # exists conceptually but cannot create environments until this package is
+    # installed from the OS repositories.
     log "INFO: Installing python3-venv ..."
 
     if ! "${SUDO_CMD[@]}" env "${APT_ENV[@]}" apt-get "${APT_GET_OPTS[@]}" update; then
@@ -47,10 +49,11 @@ install_python_venv_package() {
     "${SUDO_CMD[@]}" env "${APT_ENV[@]}" apt-get "${APT_GET_OPTS[@]}" install python3-venv
 }
 
-# Argument parsing (required positional args)
+# Parse only optional flags here. The actual STL inputs remain positional.
 require_cmd getopt
 
-# Keep sudo invocation optional so the same command works as root and non-root.
+# Keep `sudo` optional so the same script works both as root and as a regular
+# user.
 SUDO_CMD=()
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -61,7 +64,6 @@ fi
 APT_ENV=(DEBIAN_FRONTEND=noninteractive)
 APT_GET_OPTS=(-y -q)
 
-# Parse only help flags; script inputs are required positional parameters.
 SHORT_OPTS="h"
 LONG_OPTS="help"
 PARSED_ARGS="$(getopt --options "${SHORT_OPTS}" --longoptions "${LONG_OPTS}" --name "$0" -- "$@")" || {
@@ -100,33 +102,36 @@ OUTPUT="${2}"
 RESOLUTION="${3}"
 HEIGHT="${4}"
 
-# Python runtime check
+# The generator itself is a Python script, so Python must exist even if the
+# virtual environment has not been created yet.
 require_cmd python3
 
 VENV_DIR="/tmp/build_stl_from_png"
 VENV_ACTIVATED=0
 
-# Deactivate virtual environment on exit when it was activated.
+# Deactivate the virtual environment on every exit path after activation.
 cleanup() {
-    # Always deactivate if activation succeeded, even on failures.
+    # Always call `deactivate` if activation succeeded, even if the script
+    # fails later.
     if [ "${VENV_ACTIVATED}" -eq 1 ] && declare -F deactivate >/dev/null 2>&1; then
         deactivate || true
         log "INFO: Virtual environment deactivated: ${VENV_DIR}"
     fi
 }
 
-# Ensure cleanup runs on every script exit path (success or failure).
+# Register cleanup once so success and failure follow the same teardown path.
 trap cleanup EXIT
 
-# Create and activate virtual environment
+# Prepare the virtual environment directory used by this workflow.
 if [ -d "${VENV_DIR}" ] && [ ! -f "${VENV_DIR}/bin/activate" ]; then
-    # Remove broken leftovers so creation starts from a clean state.
+    # Remove partial environments because they are usually the result of an
+    # interrupted setup and are not safe to reuse.
     log "INFO: Incomplete virtual environment detected. Recreating ${VENV_DIR}..."
     rm -rf "${VENV_DIR}"
 fi
 
-# Create the virtual environment when missing; if creation fails due to missing
-# venv support, install python3-venv and retry once.
+# Create the environment when missing. If creation fails because the Python
+# installation lacks venv support, install `python3-venv` and retry once.
 if [ ! -d "${VENV_DIR}" ]; then
     log "INFO: Creating virtual environment at ${VENV_DIR}..."
 
@@ -154,20 +159,22 @@ if [ ! -f "${VENV_DIR}/bin/activate" ]; then
 fi
 
 # shellcheck disable=SC1091
-# Source activation script to bind python/pip to the virtual environment.
+# Source the activation script so `python` and `pip` resolve inside the virtual
+# environment for the rest of this shell process.
 source "${VENV_DIR}/bin/activate"
 VENV_ACTIVATED=1
 log "INFO: Virtual environment activated: ${VIRTUAL_ENV}"
 
-# Install dependencies inside virtual environment
+# Install the Python packages required by the conversion pipeline.
 log "INFO: Installing/updating Python dependencies in virtual environment..."
 if ! python -m pip install --upgrade pip setuptools wheel; then
     log "ERROR: Failed to update pip tooling in virtual environment."
     exit 1
 fi
 
-# Use fixed package versions to keep a reproducible and compatible geometry toolchain.
-# mapbox-earcut provides polygon triangulation required by trimesh.extrude_polygon.
+# Keep these versions fixed so the geometry toolchain stays reproducible.
+# `mapbox-earcut` provides polygon triangulation used by
+# `trimesh.creation.extrude_polygon`.
 PYTHON_DEPS=(
     "numpy==1.26.4"
     "scipy==1.11.4"
@@ -182,10 +189,11 @@ if ! python -m pip install --upgrade "${PYTHON_DEPS[@]}"; then
     exit 1
 fi
 
-# Execute Python script
+# Execute the Python generator after the environment has been prepared.
 log "INFO: Executing generator script..."
 
-# Resolve Python script relative to this shell script so it works from any cwd.
+# Resolve the Python script relative to this shell script so callers can run
+# this command from any working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY_SCRIPT="${SCRIPT_DIR}/build_stl_from_png.py"
 
