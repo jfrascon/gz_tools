@@ -6,56 +6,37 @@ from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction, SetLaunchConfiguration
 from launch.substitutions import LaunchConfiguration
 
-# THERE IS NO NEED TO PUSH THIS PYTHON LAUNCH FILE INTO A NAMESPACE, using PushRosNamespace, WHEN IT IS INCLUDED IN
-# ANOTHER LAUNCH FILE, SINCE THE 'CREATE' EXECUTABLE INJECTS THE ROBOT DESCRIPTION INTO GAZEBO AND THEN IT STOPS
-# RUNNING.
-# This python launch file uses the node 'create' from the package 'ros_gz_sim' to spawn a robot in Gazebo Sim.
-
-# IMPORTANT NOTE:
-# We are considering that the 'world name' is the same as the 'world file name' without the extension.
-# If this is not the case, the world will not be found in Gazebo Sim.
-
-# If you are familiar with the package 'ros_gz_sim', you might know that there is a launch file in that package called
-# 'ros_gz_spawn_model.launch.py' that is used to spawn a robot in Gazebo Sim.
-# However, that launch file run also a RosGzBridge action to bridge the topics between ROS2 and Gazebo, for the sensors
-# that the robot uses, like cameras, lidars, etc., among others.
-# In our workflow, the bridges to transfer topics between Gazebo and ROS2 are launched should not be launched from
-# the 'ros_gz_spawn_model.launch.py' launch file.
-# For this reason, we do not use the launch file 'ros_gz_spawn_model.launch.py' and implement our own logic to spawn
-# the robot in Gazebo Sim.
-# If you look into the file 'ros_gz_spawn_model.launch.py', you will see that it uses:
-# IncludeLaunchDescription(
-#         PythonLaunchDescriptionSource(
-#             [PathJoinSubstitution([FindPackageShare('ros_gz_sim'),
-#                                    'launch',
-#                                    'gz_spawn_model.launch.py'])]),
-#         launch_arguments=[('world', world),
-#                           ('file', file),
-#                           ('model_string', model_string),
-#                           ('topic', topic),
-#                           ('entity_name', entity_name),
-#                           ('allow_renaming', allow_renaming),
-#                           ('x', x),
-#                           ('y', y),
-#                           ('z', z),
-#                           ('R', roll),
-#                           ('P', pitch),
-#                           ('Y', yaw), ])
-# and the 'gz_spawn_model.launch.py' file executes the 'create' node internally.
-# To be honest, we could have used the 'gz_spawn_model.launch.py' by using an IncludeLaunchDescription action, like
-# the one above, but having into account that writing the instructions to execute the 'create' node is not that
-# difficult, we decided to launch the node 'create' directly.
-# URL with example of spawning a model from the CLI:
-# https://gazebosim.org/docs/harmonic/ros2_spawn_model/#spawn-a-model-using-the-launch-file-included-in-ros-gz-sim
+# This launch spawns a robot entity in an already running Gazebo world from a
+# ROS topic that publishes the robot description.
+#
+# The package intentionally launches `ros_gz_sim/create` directly instead of
+# reusing `ros_gz_sim` higher-level spawn launch files.
+#
+# `ros_gz_sim` already ships a launch flow for spawning models. Internally that
+# flow ends up calling the same `create` executable that this file uses.
+# However, the higher-level launch file also pulls in bridge-oriented behavior
+# that this package does not want here. In this package, world launching,
+# bridging, and robot spawning are kept as separate responsibilities.
+# References:
+# https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_sim/launch/gz_spawn_model.launch.py
+# https://gazebosim.org/docs/harmonic/ros2_spawn_model/
+#
+# `world_file` is used only to derive the Gazebo world name. This file assumes
+# `world name == world_file stem`. If the running Gazebo world uses a different
+# name, the spawn request will target the wrong world.
+#
+# There is no need to wrap this file with `PushRosNamespace`. The `create`
+# process performs the spawn request and then exits.
 
 
 def generate_launch_description():
-    # (L)aunch (d)escription (e)ntities.
     ldes: list[LaunchDescriptionEntity] = []
 
     ldes += [
         DeclareLaunchArgument(
-            'world_file', default_value='empty.sdf', description='World file w/o parent path (default: empty.sdf)'
+            'world_file',
+            default_value='empty.sdf',
+            description='World file name or absolute .sdf path used to derive the Gazebo world name',
         ),
         DeclareLaunchArgument(
             'topic', default_value='', description='Topic with robot description to spawn the robot in Gazebo Sim'
@@ -131,9 +112,10 @@ def generate_launch_description():
 
 def get_world_from_world_file(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     """
-    Get the world name from the world file.
-    We are considering that the world name is the same as the world file name without the extension.
-    If this is not the case, the world will not be found in Gazebo Sim.
+    Derive the Gazebo world name from the `world_file` launch argument.
+
+    The derived name is the file stem, for example `office.sdf -> office`.
+    This matches the convention used by the worlds shipped in this package.
     """
     world_file = LaunchConfiguration('world_file').perform(ctx)
 
