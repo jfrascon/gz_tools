@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>gz_tools</name>
+    <name>ros_gz_tools</name>
     <version>1.0.0</version>
     <description>A package containing simulation models, worlds, and other assets for Gazebo.</description>
     <maintainer email="juan.rascon@eurecat.org">Juan Fco Rascon</maintainer>
@@ -26,15 +26,21 @@
     <export>
         <build_type>ament_cmake</build_type>
         <!--
-        See function 'get_paths' in file
-        https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_sim/ros_gz_sim/actions/gzserver.py
-        or function 'get_paths' in file
-        https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_sim/launch/gz_sim.launch.py.in
-        for details about the tag 'gazebo_ros' and its attributes.
+        Gazebo reads these `gazebo_ros` exports to discover package-provided
+        resources. `gazebo_model_path` contributes directories to
+        `GZ_SIM_RESOURCE_PATH`, which allows Gazebo to resolve the models and
+        worlds installed by this package after the workspace is sourced.
+
+        `ros_gz_sim` uses the same export tags when it builds Gazebo resource
+        paths. See the `get_paths` logic in `ros_gz_sim` for the reference
+        implementation.
         -->
         <gazebo_ros gazebo_model_path="${prefix}/models"/>
         <gazebo_ros gazebo_model_path="${prefix}/worlds"/>
         <!--
+        This package currently does not export additional media-only or
+        plugin-only directories. Keep these examples here as a template for
+        future additions.
         <gazebo_ros gazebo_media_path="<path/to/media_resources>"/>
         <gazebo_ros plugin_path="<path/to/plugins>"/>
         -->
