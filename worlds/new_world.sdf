@@ -4001,7 +4001,7 @@
                         <geometry>
                           <mesh>
                             <scale>1 1 1</scale>
-                            <uri>file:///home/eutrob/workspace/install/share/gz_tools/models/pallet_box_mobile/model://pallet_box_mobile/meshes/boxes.dae</uri>
+                            <uri>file:///home/eutrob/workspace/install/share/ros_gz_tools/models/pallet_box_mobile/model://pallet_box_mobile/meshes/boxes.dae</uri>
                           </mesh>
                         </geometry>
                       </visual>
