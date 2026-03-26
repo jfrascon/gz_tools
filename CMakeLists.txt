@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(gz_tools)
+project(ros_gz_tools)
 
 find_package(ament_cmake REQUIRED)
 
