@@ -4,10 +4,6 @@ from pathlib import Path
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from catkin_pkg.package import PACKAGE_MANIFEST_FILENAME, InvalidPackage, parse_package
-from launch_ros.actions import Node
-from ros2pkg.api import get_package_names
-
-from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
@@ -18,6 +14,10 @@ from launch.actions import (
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.utilities.type_utils import normalize_typed_substitution, perform_typed_substitution
+from launch_ros.actions import Node
+from ros2pkg.api import get_package_names
+
+from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 
 # This launch starts one Gazebo world and one dedicated `/clock` bridge.
 #
@@ -106,7 +106,7 @@ def generate_launch_description():
             'autostart',
             default_value='True',
             choices=['True', 'true', 'False', 'false'],
-            description='Run simulation on start. Available if use_composition is False (default: True)',
+            description='Run simulation on start (default: True)',
         ),
         DeclareLaunchArgument(
             'initial_sim_time', default_value='0.0', description='Initial simulation time in seconds (default: 0.0)'
@@ -115,14 +115,12 @@ def generate_launch_description():
             'verbosity',
             default_value='1',
             choices=['0', '1', '2', '3', '4'],
-            description=(
-                'Verbosity level for Gazebo Sim. Available if use_composition is False (default: 1, range: 0-4)'
-            ),
+            description='Verbosity level for Gazebo Sim (default: 1, range: 0-4)',
         ),
         DeclareLaunchArgument(
             'update_rate',
             default_value='',
-            description='Update rate in Hertz. Available if use_composition is False (default: ?)',
+            description='Update rate in Hertz. Leave empty to keep Gazebo default behavior',
         ),
         DeclareLaunchArgument(
             'respawn_bridge',
@@ -204,8 +202,11 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
 
     ros_home = Path(os.environ.get('ROS_HOME', os.path.expanduser('~/.ros')))
     namespace = LaunchConfiguration('namespace').perform(ctx).strip()
-    suffix = f'{world_file_stem}_bridge.yaml'
-    bridge_file = suffix if namespace in ('', '/') else namespace.strip('/').replace('/', '_') + '_' + suffix
+    bridge_file = f'{world_file_stem}_bridge.yaml'
+
+    if namespace not in ('', '/'):
+        bridge_file = namespace.strip('/').replace('/', '_') + '_' + bridge_file
+
     abs_bridge_file = os.path.join(ros_home, bridge_file)
     abs_bridge_path = Path(abs_bridge_file)
 
@@ -270,20 +271,6 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
         """
         return list(dict.fromkeys(os.path.normpath(os.path.expanduser(p)) for p in paths if p))
 
-    def split_extra_resource_paths(extra_resource_paths: str) -> list[str]:
-        """
-        Parse the extra Gazebo resource paths provided by the user.
-
-        A comma-separated list is used so the argument behaves the same way on every supported
-        operating system.
-        """
-        raw_value = extra_resource_paths.strip()
-
-        if not raw_value:
-            return []
-
-        return [path.strip() for path in raw_value.split(',') if path.strip()]
-
     # `gazebo_model_path` and `gazebo_media_path` exports are appended to
     # `GZ_SIM_RESOURCE_PATH`. `plugin_path` exports are appended to
     # `GZ_SIM_SYSTEM_PLUGIN_PATH`.
@@ -300,7 +287,7 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
     extra_resource_paths = LaunchConfiguration('extra_resource_paths').perform(ctx).strip()
 
     if extra_resource_paths:
-        resource_paths.extend(split_extra_resource_paths(extra_resource_paths))
+        resource_paths.extend(path.strip() for path in extra_resource_paths.split(',') if path.strip())
 
     all_resource_paths = remove_duplicates(
         resource_paths
