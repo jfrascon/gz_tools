@@ -200,7 +200,7 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         ]
     )
 
-    ros_home = Path(os.environ.get('ROS_HOME', os.path.expanduser('~/.ros')))
+    ros_home = Path(os.environ.get('ROS_HOME', '~/.ros')).expanduser()
     namespace = LaunchConfiguration('namespace').perform(ctx).strip()
     bridge_file = f'{world_file_stem}_bridge.yaml'
 
