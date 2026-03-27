@@ -161,6 +161,8 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     if not gui:
         gz_args.append('-s')
     elif gui_config_file:
+        if not Path(gui_config_file).is_file():
+            raise ValueError(f"The GUI config file '{gui_config_file}' does not exist")
         gz_args.extend([' --gui-config ', gui_config_file])
     else:
         gz_args.extend(
