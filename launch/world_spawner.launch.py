@@ -282,7 +282,11 @@ def set_environment_variables(ctx: LaunchContext) -> list[LaunchDescriptionEntit
     if ament_prefix_path:
         # Gazebo often needs the `share` directory of ROS packages to resolve
         # meshes referenced from robot descriptions and SDF files.
-        resource_paths.extend([os.path.join(p, 'share') for p in ament_prefix_path.split(os.pathsep)])
+        resource_paths.extend(
+            os.path.join(path, 'share')
+            for raw_path in ament_prefix_path.split(os.pathsep)
+            if (path := raw_path.strip())
+        )
 
     extra_resource_paths = LaunchConfiguration('extra_resource_paths').perform(ctx).strip()
 
