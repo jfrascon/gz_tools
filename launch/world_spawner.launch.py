@@ -186,9 +186,8 @@ def spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     world_file = LaunchConfiguration('world_file').perform(ctx)
     world_file_path = Path(world_file)
     world_file_stem = world_file_path.stem
-    world_file_ext = world_file_path.suffix
 
-    if world_file_ext != '.sdf':
+    if world_file_path.suffix.lower() != '.sdf':
         raise ValueError(f"The world file '{world_file}' does not have the required extension '.sdf'")
 
     gz_args.extend(
