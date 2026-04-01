@@ -20,9 +20,17 @@
     </physics>
 
     <!--
-      Load the standard Gazebo world systems used by the maintained worlds in
-      this package. This world keeps the same base plugin set as
-      `factory_w_pallets.sdf`.
+      Load the Gazebo world systems that this environment expects regardless of
+      how the simulation is launched.
+
+      In particular, this world is compatible with a split launch flow where
+      the Gazebo server is started first and the GUI is started later with
+      `gz sim -g`. The `SceneBroadcaster` plugin must stay enabled so the GUI
+      can connect to the running server and render the scene.
+
+      Keep `Sensors` enabled as well. The world itself does not define sensors,
+      but robots spawned later may contain camera, lidar, or IMU sensors that
+      depend on the world-level rendering systems being loaded.
     -->
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics">
       <engine>

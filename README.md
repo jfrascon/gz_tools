@@ -1,320 +1,117 @@
 # ros_gz_tools
 
-`ros_gz_tools` is a ROS 2 package that groups Gazebo Sim resources and the launch files used to run them.
-The package installs:
+`ros_gz_tools` is a ROS 2 package that provides two kinds of content:
 
-- SDF worlds under `worlds/`
-- Gazebo models under `models/`
-- Mesh assets and source files under `meshes/`
-- Launch files under `launch/`
-- Helper scripts under `scripts/`
-- A Gazebo GUI configuration under `config/`
-- A colcon environment hook under `hooks/`
+- Gazebo Sim resources owned by the package:
+  - worlds under `worlds/`
+  - models under `models/`
+  - meshes under `meshes/`
+  - GUI configuration under `config/`
+- Reusable launch helpers for Gazebo world bringup:
+  - `launch/spawn_world.launch.py`
+  - `launch/spawn_gui.launch.py`
+  - `scripts/wait_for_gz_service.py`
 
-The package is meant to solve two concrete problems:
+The package is intentionally generic. It does not contain project-specific
+robot orchestration. A project package can consume these launchers and pass its
+own YAML files for world, obstacle, and bridge configuration.
 
-1. Launch a Gazebo world from ROS 2 with the resource paths already configured.
-2. Keep package-owned simulation assets reproducible, especially worlds that are generated from floor-plan images.
+## Runtime Behavior
 
-## Prerequisites
+The runtime entry points are:
 
-Use this package from a sourced ROS 2 workspace that already provides Gazebo Sim integration.
-At minimum, the sourced environment must include:
+- `launch/spawn_world.launch.py`
+- `launch/spawn_gui.launch.py`
+- `scripts/wait_for_gz_service.py`
+
+`spawn_world.launch.py` performs this sequence:
+
+1. Read one YAML file that defines the world and the fixed obstacles to spawn.
+2. Read one YAML file that defines the ROS-Gazebo bridges.
+3. Start the Gazebo server through `ros_gz_sim.launch.py`.
+4. Optionally start the Gazebo GUI as a separate client process.
+5. Wait until Gazebo exposes `/world/<world_name>/create`.
+6. Spawn each enabled obstacle through `ros_gz_sim/gz_spawn_model.launch.py`.
+
+`spawn_gui.launch.py` starts only the Gazebo GUI client with `gz sim -g`.
+It does not start the Gazebo server and it does not create bridges.
+
+`wait_for_gz_service.py` is a small helper used by the launch files. It polls
+`gz service -l` until a requested Gazebo Transport service appears.
+
+## Dependencies
+
+At runtime, this package depends on:
 
 - `ros_gz_sim`
 - `ros_gz_bridge`
+- `ros2_launch_helpers`
 
-## Quickstart
+`ros2_launch_helpers` is not expected to come from the system packages. The
+repository therefore ships its own [deps.repos](deps.repos) file so the source
+dependency can be fetched with `vcs import` when `ros_gz_tools` is used as a
+standalone repository.
 
-Build and source the workspace:
+The dependency is still declared in `package.xml`. `deps.repos` complements
+`package.xml`; it does not replace it.
+
+## Gazebo Resource Resolution
+
+This package uses both of these URI patterns inside SDF files:
+
+- `package://ros_gz_tools/...`
+- `model://<model_name>/...`
+
+Because both forms are used, the package exports two Gazebo search roots:
+
+- `share/` for `package://ros_gz_tools/...`
+- `share/ros_gz_tools/models` for `model://<model_name>/...`
+
+Those exports are declared in `package.xml`, and the environment hook keeps
+the same paths available in sourced workspaces.
+
+## Maintenance Scripts
+
+The repository also contains scripts that are used only to generate or rebuild
+package-owned assets, for example:
+
+- `scripts/build_stl_from_png.py`
+- `scripts/build_stl_from_png.sh`
+- `meshes/office_environment_1/build_office_environment_1.sh`
+
+These files are not part of the runtime contract of the package:
+
+- they are not installed as runtime executables
+- they are not invoked by the launch files
+- they may require extra system packages or Python packages that are not
+  declared as runtime dependencies in `package.xml`
+
+Their purpose is to keep generated assets reproducible inside the repository.
+
+## Building
+
+Build the package inside a sourced ROS 2 workspace:
 
 ```bash
-cd <workspace_path>
-colcon build --merge-install --symlink-install
+colcon build --merge-install --symlink-install --packages-select ros_gz_tools
 source install/setup.bash
 ```
 
-Launch the office world with the Gazebo GUI:
+## Example Usage
+
+Launch a world, its bridges, and the fixed obstacles defined by a project
+package:
 
 ```bash
-ros2 launch ros_gz_tools world_spawner.launch.py \
-  world_file:=office_environment_1.sdf \
-  gui:=True
+ros2 launch ros_gz_tools spawn_world.launch.py \
+  simulation_world_obstacles_file:=package://simulation/config/simulation_world_obstacles.yaml \
+  simulation_world_bridge_file:=package://simulation/config/simulation_bridge.yaml \
+  gz_gui:=True
 ```
 
-Launch the same world in headless mode:
+Launch only the Gazebo GUI client:
 
 ```bash
-ros2 launch ros_gz_tools world_spawner.launch.py \
-  world_file:=office_environment_1.sdf \
-  gui:=False
+ros2 launch ros_gz_tools spawn_gui.launch.py \
+  gz_gui_config_file:=package://ros_gz_tools/config/gz_gui.config
 ```
-
-What this launch does:
-
-- Starts Gazebo Sim.
-- Loads the requested world.
-- Configures Gazebo resource and plugin paths before Gazebo starts.
-- Starts a ROS-Gazebo bridge for `/clock`.
-
-Optional verification from another sourced terminal:
-
-```bash
-ros2 topic echo /clock --once
-```
-
-## Launch Files
-
-### `launch/world_spawner.launch.py`
-
-This launch file starts Gazebo Sim and a dedicated clock bridge.
-It also prepares `GZ_SIM_RESOURCE_PATH` and `GZ_SIM_SYSTEM_PLUGIN_PATH` before Gazebo starts.
-
-Launch arguments:
-
-- `namespace`: ROS namespace applied to the bridge node started by this file.
-- `world_file`: SDF file name or absolute `.sdf` path to load.
-- `extra_resource_paths`: comma-separated list of directories appended to `GZ_SIM_RESOURCE_PATH`.
-  Use this only when the selected world depends on meshes, models, or media that are not installed by ROS packages in
-  the sourced workspace. If the world references `model://my_model`, pass the parent directory that contains the
-  `my_model/` folder, not the `my_model/` folder itself.
-- `gui`: `True` to start Gazebo with its GUI, `False` to run headless.
-- `gui_config_file`: path to a Gazebo GUI configuration file. If empty and `gui:=True`, the package default GUI
-  configuration is used.
-- `autostart`: `True` to start the simulation running immediately, `False` to start paused.
-- `initial_sim_time`: initial simulation time in seconds passed to Gazebo.
-- `verbosity`: Gazebo verbosity level from `0` to `4`.
-- `update_rate`: simulation update rate in Hz. If empty, the launch file does not pass `-z` to Gazebo.
-- `respawn_bridge`: whether the clock bridge node should respawn if it exits.
-- `log_level_bridge`: ROS log level used by the bridge node.
-
-Show the launcher help:
-
-```bash
-ros2 launch ros_gz_tools world_spawner.launch.py -s
-```
-
-Example with one of the package worlds:
-
-```bash
-ros2 launch ros_gz_tools world_spawner.launch.py \
-  world_file:=office_environment_1.sdf \
-  gui:=True \
-  autostart:=True \
-  verbosity:=1
-```
-
-Example with a world stored outside the package:
-
-```bash
-ros2 launch ros_gz_tools world_spawner.launch.py \
-  world_file:=/home/user/Desktop/my_world/my_world.sdf \
-  extra_resource_paths:=/home/user/Desktop/my_world,/home/user/Desktop/my_world/models,/home/user/Desktop/my_world/meshes
-```
-
-The external-world example above is intentionally explicit.
-Passing an absolute `world_file` is enough only when the `.sdf` file does not depend on additional external resources.
-If that `.sdf` references meshes, models, or media outside the sourced ROS packages, those directories must also be
-listed in `extra_resource_paths`.
-
-Example for `model://` resolution:
-
-- If the world contains `model://my_model`
-- and the model files are stored in `/home/user/Downloads/my_model/`
-- then `extra_resource_paths` should include `/home/user/Downloads`
-- not `/home/user/Downloads/my_model`
-
-### `launch/robot_spawner.launch.py`
-
-This launch file spawns one robot entity into an already running Gazebo world.
-It reads the robot description from a ROS topic and calls `ros_gz_sim/create`.
-It does not start any Gazebo world and it does not start any bridge.
-
-Launch arguments:
-
-- `world_file`: world file used to derive the Gazebo world name.
-- `topic`: ROS topic that publishes the robot description.
-- `model_name`: Gazebo entity name to create.
-- `allow_renaming`: whether Gazebo may rename the entity if `model_name` already exists.
-- `x`, `y`, `z`: spawn position.
-- `R`, `P`, `Y`: roll, pitch, and yaw in radians.
-
-Show the launcher help:
-
-```bash
-ros2 launch ros_gz_tools robot_spawner.launch.py -s
-```
-
-Example:
-
-```bash
-ros2 launch ros_gz_tools robot_spawner.launch.py \
-  world_file:=office_environment_1.sdf \
-  topic:=/robot_description \
-  model_name:=my_robot \
-  x:=0.0 y:=0.0 z:=0.1
-```
-
-Important behavior:
-
-- This file assumes `world name == world_file stem`.
-- Example: `office_environment_1.sdf` is assumed to correspond to the Gazebo world named `office_environment_1`.
-- If the running Gazebo world uses a different internal name, the spawn request will target the wrong world.
-
-## External Worlds And Resource Resolution
-
-There are two different cases when you launch a world:
-
-1. `world_file` points to a world that Gazebo can already resolve.
-2. `world_file` points to a world outside the package and outside the sourced ROS packages.
-
-In case `1`, `world_file` can be something like:
-
-- `empty.sdf`
-- `office_environment_1.sdf`
-
-In case `2`, `world_file` should be an absolute path such as:
-
-```bash
-world_file:=/home/user/Desktop/my_world/my_world.sdf
-```
-
-If that external `.sdf` references other external resources, `extra_resource_paths` must list the directories Gazebo
-has to search.
-
-Use `extra_resource_paths` only for directories that Gazebo really needs to search.
-Do not add unrelated directories just because they are near the world file.
-
-## STL Generation From Floor Plans
-
-This package includes a small conversion pipeline that turns a black-and-white floor-plan PNG into one STL mesh.
-
-Files involved in that workflow:
-
-- [scripts/build_stl_from_png.sh](scripts/build_stl_from_png.sh)
-- [scripts/build_stl_from_png.py](scripts/build_stl_from_png.py)
-
-The required image convention is:
-
-- black pixels represent obstacles or walls
-- white pixels represent free space
-
-Run the Bash wrapper like this:
-
-```bash
-./scripts/build_stl_from_png.sh <image_path> <output_path> <resolution_m_per_px> <height_m>
-```
-
-The Bash wrapper is the recommended entry point because it creates or reuses the virtual environment that the Python
-script needs.
-
-For the complete step-by-step workflow, read [scripts/README.md](scripts/README.md).
-
-## Reproducible Environment Meshes
-
-If a world in this package is built from a floor plan, keep the source files and the rebuild command next to the mesh.
-That makes the mesh reproducible and makes it clear which source image produced which STL.
-
-Package convention for a generated environment:
-
-- create one folder under `meshes/` for that environment
-- keep the source image files in that folder
-- keep the generated STL in the same folder
-- add one no-argument rebuild script in that folder with the fixed parameters used for that environment
-- reference the STL from the world SDF with `package://ros_gz_tools/...`
-
-Current example:
-
-- rebuild script: [meshes/office_environment_1/build_office_environment_1.sh](meshes/office_environment_1/build_office_environment_1.sh)
-- source image: [meshes/office_environment_1/office_environment_1.png](meshes/office_environment_1/office_environment_1.png)
-- generated mesh: [meshes/office_environment_1/office_environment_1.stl](meshes/office_environment_1/office_environment_1.stl)
-- consuming world: [worlds/office_environment_1.sdf](worlds/office_environment_1.sdf)
-
-Rebuild that mesh with:
-
-```bash
-bash meshes/office_environment_1/build_office_environment_1.sh
-```
-
-## Troubleshooting
-
-### Gazebo does not load the world
-
-Checks:
-
-- If the world belongs to a ROS package in the sourced workspace, confirm the file exists in that package resources.
-- If the world is outside the workspace, pass its absolute path through `world_file`.
-- Confirm the workspace was sourced after the last build.
-
-### Gazebo loads the world but some resources are missing
-
-Checks:
-
-- Confirm the missing resources are located in directories passed through `extra_resource_paths`.
-- Confirm `extra_resource_paths` uses commas, not spaces, to separate directories.
-- Confirm those directories actually contain the meshes, models, or media referenced by the selected `.sdf`.
-
-### A mesh URI inside an SDF is not resolved
-
-Checks:
-
-- Use `package://ros_gz_tools/...` for package-owned assets.
-- Confirm the referenced file exists after the package has been built and installed.
-- Print `GZ_SIM_RESOURCE_PATH` and confirm the package paths are present.
-
-### Gazebo cannot resolve this package resources at all
-
-Checks:
-
-- Rebuild and source the workspace again.
-- Print `GZ_SIM_RESOURCE_PATH` and confirm it contains this package `models/` and `worlds/` paths.
-- Confirm the environment hook described below is installed.
-
-### STL generation fails
-
-Checks:
-
-- Run the Bash wrapper, not only the Python script, so the virtual environment is created if needed.
-- Confirm the input image uses black walls and white free space.
-- Review the full workflow in [scripts/README.md](scripts/README.md).
-
-## Colcon Hook For Gazebo Resource Paths
-
-Gazebo resolves package worlds, models, and media through `GZ_SIM_RESOURCE_PATH`.
-This package installs a colcon environment hook so the package resource directories are registered automatically after
-the workspace is sourced.
-
-That hook is defined in [hooks/ros_gz_tools.dsv.in](hooks/ros_gz_tools.dsv.in):
-
-```bash
-prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/models
-prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/worlds
-```
-
-What those entries do:
-
-- `prepend-non-duplicate` adds the path only if it is not already present.
-- `@CMAKE_INSTALL_PREFIX@` expands to the package install prefix.
-- `@PROJECT_NAME@` expands to `ros_gz_tools`.
-
-The hook is installed from [CMakeLists.txt](CMakeLists.txt) with:
-
-```cmake
-ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
-```
-
-If you build with `--merge-install`, the installed package resources are typically:
-
-```text
-install/share/ros_gz_tools/models
-install/share/ros_gz_tools/worlds
-```
-
-If you build without `--merge-install`, the installed package resources are typically:
-
-```text
-install/ros_gz_tools/share/ros_gz_tools/models
-install/ros_gz_tools/share/ros_gz_tools/worlds
-```
-
-In both cases, sourcing the workspace should make those paths visible to Gazebo through `GZ_SIM_RESOURCE_PATH`.
