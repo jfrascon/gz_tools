@@ -1,5 +1,5 @@
 repositories:
     ros2_launch_helpers:
         type: git
-        url: https://github.com/jfrascon/ros2_launch_helpers.git
+        url: git@gitlab.local.eurecat.org:robotics-automation/eut_ros2_launch_helpers.git
         version: ros2
