@@ -203,7 +203,7 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     bridge_name_prefix = ''
 
     if namespace not in ('', '/'):
-        bridge_name_prefix = rlh.underscorify_namespace(namespace) + '_'
+        bridge_name_prefix = rlh.flatten_namespace(namespace, '_') + '_'
 
     bridge_name = bridge_name_prefix + 'world_bridge'
 
