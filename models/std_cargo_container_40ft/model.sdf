@@ -1,8 +1,15 @@
 <?xml version="1.0"?>
 <sdf version="1.7">
     <!--
-    Outer dimensions of a standard 40ft cargo container (size_x = 12.19 m, size_y = 2.336 m, size_z =  2.413 m) and
-    inner dimensions (size_x = 12.01 m, size_y = 2.33 m, size_z = 2.38 m).
+    Outer dimensions of a standard 40ft cargo container are:
+    size_x = 12.19 m, size_y = 2.44 m, size_z =  2.59 m)
+    Reference: https://www.icontainers.com/help/40-foot-container/
+    Inner dimensions:
+    size_x = 12.01 m, size_y = 2.33 m, size_z = 2.38 m.
+    Reference: Document from Schreder.
+
+    diff_x = 0.18 m, diff_y = 0.11 m, diff_z = 0.21 m
+
     Frame for the model is container_link, located at the center of bottom face of the container.
     -->
     <model name="std_cargo_container_40ft" canonical_link="container_link" placement_frame="container_link">
@@ -16,10 +23,18 @@
             <visual name="floor_visual">
                 <geometry>
                     <box>
-                        <size>12.19 2.336 0.03</size>
+                        <!--
+                        sx = sx_outer = 12.19 m
+                        sy = sy_outer = 2.44 m
+                        sz = 0.005 m
+                        -->
+                        <size>12.19 2.44 0.005</size>
                     </box>
                 </geometry>
-                <pose>0 0 0.015 0 0 0</pose>
+                <!--
+                pz = sz * 0.5 = 0.005 * 0.5 = 0.0025 m
+                -->
+                <pose>0 0 0.0025 0 0 0</pose>
                 <material>
                     <ambient>0.9 1.0 0.3 1</ambient>
                     <diffuse>0.9 1.0 0.3 1</diffuse>
@@ -30,10 +45,21 @@
             <visual name="left_wall_visual">
                 <geometry>
                     <box>
-                        <size>12.19 0.003 2.38</size>
+                        <!--
+                        sx = sx_outer = 12.19 m
+                        sy = diff_y * 0.5 = 0.11 * 0.5 = 0.055 m
+                        sz = sz_inner = 2.38 m
+                        -->
+                        <size>12.19 0.055 2.38</size>
                     </box>
                 </geometry>
-                <pose>0 1.1665 1.22 0 0 0</pose>
+                <!--
+                py = (sy_outer * 0.5) - (sy * 0.5) = 0.5 * (sy_outer - sy) =
+                   = 0.5 * (2.44 - 0.055) = 1.1925 m
+                pz = sz_floor + (0.5 * sz) = 0.005 + (0.5 * 2.38)
+                   = 0.005 + 1.19 = 1.195 m
+                -->
+                <pose>0 1.1925 1.195 0 0 0</pose>
                 <material>
                     <ambient>1 0 0 1</ambient>
                     <diffuse>1 0 0 1</diffuse>
@@ -43,11 +69,22 @@
 
             <visual name="right_wall_visual">
                 <geometry>
+                    <!--
+                    sx = sx_outer = 12.19 m
+                    sy = diff_y * 0.5 = 0.11 * 0.5 = 0.055 m
+                    sz = sz_inner = 2.38 m
+                    -->
                     <box>
-                        <size>12.19 0.003 2.38</size>
+                        <size>12.19 0.055 2.38</size>
                     </box>
                 </geometry>
-                <pose>0 -1.1665 1.22 0 0 0</pose>
+                <!--
+                py = -(sy_outer * 0.5) + (sy * 0.5) = 0.5 * (-sy_outer + sy) =
+                   = 0.5 * (-2.44 + 0.055) = -1.1925
+                pz = sz_floor + (0.5 * sz) = 0.005 + (0.5 * 2.38)
+                   = 0.005 + 1.19 = 1.195 m
+                -->
+                <pose>0 -1.1925 1.195 0 0 0</pose>
                 <material>
                     <ambient>1 0 0 1</ambient>
                     <diffuse>1 0 0 1</diffuse>
@@ -57,11 +94,19 @@
 
             <visual name="ceiling_visual">
                 <geometry>
+                    <!--
+                    sx = sx_outer = 12.19 m
+                    sy = sy_outer = 2.44 m
+                    sz = diff_z - 0.005 = 0.21 - 0.005 = 0.205 m
+                    -->
                     <box>
-                        <size>12.19 2.336 0.003</size>
+                        <size>12.19 2.44 0.205</size>
                     </box>
                 </geometry>
-                <pose>0 0 2.4115 0 0 0</pose>
+                <!--
+                pz = sz_floor + sz_wall + (sz * 0.5)  = 0.005 + 2.38 + (0.205 * 0.5) = 2.4875
+                -->
+                <pose>0 0 2.4875 0 0 0</pose>
                 <material>
                     <ambient>1 0 0 0.3</ambient>
                     <diffuse>1 0 0 0.3</diffuse>
@@ -71,11 +116,20 @@
 
             <visual name="front_wall_visual">
                 <geometry>
+                    <!--
+                    sx = diff_x * 0.5 = 0.18 * 0.5 = 0.09 m
+                    sy = diff_y = 2.33 m
+                    sz = sz_inner = 2.38 m
+                    -->
                     <box>
                         <size>0.09 2.33 2.38</size>
                     </box>
                 </geometry>
-                <pose>6.050 0 1.22 0 0 0</pose>
+                <!--
+                px = (0.5 * sx_floor)  - (0.5 * sx) = 0.5 * (sx_floor - sx) = 0.5 * (12.19 - 0.09) = 6.05 m
+                pz = sz_floor + (0.5 * sz) = 0.005 + (0.5 * 2.38) = 1.195 m
+                -->
+                <pose>6.050 0 1.195 0 0 0</pose>
                 <material>
                     <ambient>1 0 0 1</ambient>
                     <diffuse>1 0 0 1</diffuse>
@@ -86,37 +140,37 @@
             <collision name="floor_collision">
                 <geometry>
                     <box>
-                        <size>12.19 2.336 0.03</size>
+                        <size>12.19 2.44 0.005</size>
                     </box>
                 </geometry>
-                <pose>0 0 0.015 0 0 0</pose>
+                <pose>0 0 0.0025 0 0 0</pose>
             </collision>
 
             <collision name="left_wall_collision">
                 <geometry>
                     <box>
-                        <size>12.19 0.003 2.38</size>
+                        <size>12.19 0.055 2.38</size>
                     </box>
                 </geometry>
-                <pose>0 1.1665 1.22 0 0 0</pose>
+                <pose>0 1.1925 1.195 0 0 0</pose>
             </collision>
 
             <collision name="right_wall_collision">
                 <geometry>
                     <box>
-                        <size>12.19 0.003 2.38</size>
+                        <size>12.19 0.055 2.38</size>
                     </box>
                 </geometry>
-                <pose>0 -1.1665 1.22 0 0 0</pose>
+                <pose>0 -1.1925 1.195 0 0 0</pose>
             </collision>
 
             <collision name="ceiling_collision">
                 <geometry>
                     <box>
-                        <size>12.19 2.336 0.003</size>
+                        <size>12.19 2.44 0.205</size>
                     </box>
                 </geometry>
-                <pose>0 0 2.4115 0 0 0</pose>
+                <pose>0 0 2.4875 0 0 0</pose>
             </collision>
 
             <collision name="front_wall_collision">
@@ -125,20 +179,20 @@
                         <size>0.09 2.33 2.38</size>
                     </box>
                 </geometry>
-                <pose>6.050 0 1.22 0 0 0</pose>
+                <pose>6.050 0 1.195 0 0 0</pose>
             </collision>
 
             <inertial>
                 <mass>3701.0</mass>
                 <inertia>
-                    <ixx>3416.627</ixx>
+                    <ixx>3905.079308</ixx>
                     <ixy>0.0</ixy>
                     <ixz>0.0</ixz>
-                    <iyy>1750.107</iyy>
+                    <iyy>47898.403683</iyy>
                     <iyz>0.0</iyz>
-                    <izz>1676.303</izz>
+                    <izz>47665.703308</izz>
                 </inertia>
-                <pose>0 0 1.2065 0 0 0</pose>
+                <pose>0 0 1.195 0 0 0</pose>
             </inertial>
             <pose>0 0 0 0 0 0</pose>
         </link>
