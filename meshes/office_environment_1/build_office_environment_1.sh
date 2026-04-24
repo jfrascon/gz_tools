@@ -18,7 +18,7 @@ BUILD_SCRIPT="${PACKAGE_DIR}/scripts/build_stl_from_png.sh"
 IMG_NAME="office_environment_1"
 INPUT_IMAGE="${SCRIPT_DIR}/${IMG_NAME}.png"
 OUTPUT_STL="${SCRIPT_DIR}/${IMG_NAME}.stl"
-RESOLUTION="0.01258" # m/px
+RESOLUTION="0.01258" # m/px; 19.40 m / (4178 − 2636 + 1)
 HEIGHT="2.5"         # m
 
 # Validate the fixed inputs used by this environment-specific rebuild helper.
