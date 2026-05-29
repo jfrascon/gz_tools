@@ -13,10 +13,11 @@
       <origin_visual>true</origin_visual>
     </scene>
 
-    <physics name="dart_physics" default="true" type="ignored">
-      <max_step_size>0.002</max_step_size>
-      <real_time_update_rate>500</real_time_update_rate>
-      <real_time_factor>1.0</real_time_factor>
+    <physics name="default_physics" default="true" type="dart">
+      <max_step_size>0.01</max_step_size>
+      <real_time_update_rate>100</real_time_update_rate>
+      <real_time_factor>1</real_time_factor>
+      <max_contacts>10</max_contacts>
     </physics>
 
     <!--
@@ -24,7 +25,7 @@
       this package. This world keeps the same base plugin set as
       `factory_w_pallets.sdf`.
     -->
-    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics">
+    <plugin name="gz::sim::systems::Physics" filename="gz-sim-physics-system">
       <engine>
         <filename>gz-physics-dartsim-plugin</filename>
       </engine>
