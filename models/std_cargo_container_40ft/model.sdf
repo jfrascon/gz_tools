@@ -2,13 +2,20 @@
 <sdf version="1.7">
     <!--
     Outer dimensions of a standard 40ft cargo container are:
-    size_x = 12.19 m, size_y = 2.44 m, size_z =  2.59 m)
+    size_x_outer = 12.19 m
+    size_y_outer =  2.44 m
+    size_z_outer =  2.59 m
     Reference: https://www.icontainers.com/help/40-foot-container/
+
     Inner dimensions:
-    size_x = 12.01 m, size_y = 2.33 m, size_z = 2.38 m.
+    size_x_inner = 12.01 m
+    size_y_inner =  2.33 m
+    size_z_inner =  2.38 m
     Reference: Document from Schreder.
 
-    diff_x = 0.18 m, diff_y = 0.11 m, diff_z = 0.21 m
+    diff_x = size_x_outer - size_x_inner = 0.18 m,
+    diff_y = size_y_outer - size_y_inner = 0.11 m,
+    diff_z = size_z_outer - size_z_inner = 0.21 m.
 
     Frame for the model is container_link, located at the center of bottom face of the container.
     -->
@@ -24,8 +31,8 @@
                 <geometry>
                     <box>
                         <!--
-                        sx = sx_outer = 12.19 m
-                        sy = sy_outer = 2.44 m
+                        sx = size_x_outer = 12.19 m
+                        sy = size_y_outer = 2.44 m
                         sz = 0.005 m
                         -->
                         <size>12.19 2.44 0.005</size>
@@ -46,18 +53,19 @@
                 <geometry>
                     <box>
                         <!--
-                        sx = sx_outer = 12.19 m
+                        sx = size_x_outer = 12.19 m
                         sy = diff_y * 0.5 = 0.11 * 0.5 = 0.055 m
-                        sz = sz_inner = 2.38 m
+                        sz = size_z_inner = 2.38 m
                         -->
                         <size>12.19 0.055 2.38</size>
                     </box>
                 </geometry>
                 <!--
-                py = (sy_outer * 0.5) - (sy * 0.5) = 0.5 * (sy_outer - sy) =
+                py = (size_y_outer * 0.5) - (sy * 0.5) =
+                   = 0.5 * (size_y_outer - sy) =
                    = 0.5 * (2.44 - 0.055) = 1.1925 m
-                pz = sz_floor + (0.5 * sz) = 0.005 + (0.5 * 2.38)
-                   = 0.005 + 1.19 = 1.195 m
+                pz = sz_floor + (0.5 * sz) =
+                   = 0.005 + (0.5 * 2.38) = 1.195 m
                 -->
                 <pose>0 1.1925 1.195 0 0 0</pose>
                 <material>
@@ -70,19 +78,20 @@
             <visual name="right_wall_visual">
                 <geometry>
                     <!--
-                    sx = sx_outer = 12.19 m
+                    sx = size_x_outer = 12.19 m
                     sy = diff_y * 0.5 = 0.11 * 0.5 = 0.055 m
-                    sz = sz_inner = 2.38 m
+                    sz = size_z_inner = 2.38 m
                     -->
                     <box>
                         <size>12.19 0.055 2.38</size>
                     </box>
                 </geometry>
                 <!--
-                py = -(sy_outer * 0.5) + (sy * 0.5) = 0.5 * (-sy_outer + sy) =
+                py = -(sy_outer * 0.5) + (sy * 0.5) =
+                   = 0.5 * (-sy_outer + sy) =
                    = 0.5 * (-2.44 + 0.055) = -1.1925
-                pz = sz_floor + (0.5 * sz) = 0.005 + (0.5 * 2.38)
-                   = 0.005 + 1.19 = 1.195 m
+                pz = sz_floor + (0.5 * sz) =
+                   = 0.005 + (0.5 * 2.38) = 1.195 m
                 -->
                 <pose>0 -1.1925 1.195 0 0 0</pose>
                 <material>
@@ -95,8 +104,8 @@
             <visual name="ceiling_visual">
                 <geometry>
                     <!--
-                    sx = sx_outer = 12.19 m
-                    sy = sy_outer = 2.44 m
+                    sx = size_x_outer = 12.19 m
+                    sy = size_y_outer = 2.44 m
                     sz = diff_z - 0.005 = 0.21 - 0.005 = 0.205 m
                     -->
                     <box>
@@ -104,7 +113,8 @@
                     </box>
                 </geometry>
                 <!--
-                pz = sz_floor + sz_wall + (sz * 0.5)  = 0.005 + 2.38 + (0.205 * 0.5) = 2.4875
+                pz = sz_floor + sz_wall + (sz * 0.5)  =
+                   = 0.005 + 2.38 + (0.205 * 0.5) = 2.4875
                 -->
                 <pose>0 0 2.4875 0 0 0</pose>
                 <material>
@@ -118,16 +128,19 @@
                 <geometry>
                     <!--
                     sx = diff_x * 0.5 = 0.18 * 0.5 = 0.09 m
-                    sy = diff_y = 2.33 m
-                    sz = sz_inner = 2.38 m
+                    sy = size_y_inner = 2.33 m
+                    sz = size_z_inner = 2.38 m
                     -->
                     <box>
                         <size>0.09 2.33 2.38</size>
                     </box>
                 </geometry>
                 <!--
-                px = (0.5 * sx_floor)  - (0.5 * sx) = 0.5 * (sx_floor - sx) = 0.5 * (12.19 - 0.09) = 6.05 m
-                pz = sz_floor + (0.5 * sz) = 0.005 + (0.5 * 2.38) = 1.195 m
+                px = (0.5 * sx_floor)  - (0.5 * sx) =
+                   = 0.5 * (sx_floor - sx) =
+                   = 0.5 * (12.19 - 0.09) = 6.05 m
+                pz = sz_floor + (0.5 * sz) =
+                   = 0.005 + (0.5 * 2.38) = 1.195 m
                 -->
                 <pose>6.050 0 1.195 0 0 0</pose>
                 <material>
