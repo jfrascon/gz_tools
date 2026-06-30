@@ -1,7 +1,25 @@
 #!/usr/bin/env bash
 
+# Use this script to spawn one Gazebo Sim entity through the /gzserver/spawn_entity ROS 2
+# service when you already have the model file and the desired pose in the Gazebo world frame.
+# Run it with the model URI, the entity name, the position in meters, and the orientation in
+# degrees:
+#
+#   spawn_gz_entity <uri> <name> <x_m> <y_m> <z_m> <roll_deg> <pitch_deg> <yaw_deg>
+#
+# The <uri> argument must point to an existing model file. Relative paths are accepted; the
+# script resolves the model file to an absolute path before calling Gazebo. The script converts
+# roll, pitch, and yaw to a quaternion before calling the Gazebo spawn service.
+#
+# Example:
+#
+#   cd <ros_gz_tools>
+#   spawn_gz_entity models/euro_pallet/model.sdf euro_pallet_01 0.0 0.0 0.0 0.0 0.0 0.0
+
 usage() {
   echo "Usage: ${0} <uri> <name> <x_m> <y_m> <z_m> <roll_deg> <pitch_deg> <yaw_deg>"
+  echo "  <uri> can be an absolute or relative model file path."
+  echo "  Relative paths are resolved to absolute paths before calling Gazebo."
 }
 
 # Position arguments are meters. Roll, pitch, and yaw arguments are degrees.
@@ -30,6 +48,9 @@ if [[ ! -f "${model_uri}" ]]; then
   echo "Error: model file does not exist: ${model_uri}" >&2
   exit 1
 fi
+
+# Resolve the model file to an absolute path before calling Gazebo.
+model_uri="$(realpath "${model_uri}")"
 
 read -r qx qy qz qw < <(
   python3 - "${pos_x_m}" "${pos_y_m}" "${pos_z_m}" "${roll_deg}" "${pitch_deg}" "${yaw_deg}" <<'PY'
