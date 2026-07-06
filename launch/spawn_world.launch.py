@@ -67,9 +67,6 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument('bridge_name', default_value='', description='Name of the bridge'),
             DeclareLaunchArgument(
-                'bridge_params', default_value='', description='Extra parameters to pass to the bridge.'
-            ),
-            DeclareLaunchArgument(
                 'bridge_subscription_heartbeat',
                 default_value='1000',
                 description='Milliseconds between bridge subscription heartbeat checks',
@@ -207,7 +204,7 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
             use_composition=LaunchConfiguration('use_composition'),
             use_respawn=LaunchConfiguration('bridge_use_respawn'),
             log_level=LaunchConfiguration('bridge_log_level'),
-            bridge_params=LaunchConfiguration('bridge_params'),
+            bridge_params='',
             extra_bridge_params=extra_bridge_params,
         ),
     ]
