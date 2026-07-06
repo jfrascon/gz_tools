@@ -5,6 +5,9 @@ This launch file starts a Gazebo server from an SDF world file, starts the bridg
 configured by a YAML bridge file, and can optionally start the Gazebo GUI as a
 separate client process. Static project obstacles should normally live directly
 in the SDF world file. Dynamic entities can be spawned by a separate tool.
+
+This launch file is inspired in the file
+`/opt/ros/jazzy/share/ros_gz_sim/launch/ros_gz_sim.launch.py`
 """
 
 import xml.etree.ElementTree as ET

@@ -11,10 +11,9 @@ simulation backend.
 
 from pathlib import Path
 
+from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
-
-from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
 
 
 def generate_launch_description() -> LaunchDescription:
