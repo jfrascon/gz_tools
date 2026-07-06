@@ -10,8 +10,8 @@
 - Reusable launch helpers for Gazebo world bringup:
   - `launch/spawn_world.launch.py`
   - `launch/spawn_gui.launch.py`
-  - `scripts/spawn_gz_entity`
-  - `scripts/delete_gz_entity`
+  - `launch/spawn_model.launch.py`
+  - `launch/remove_model.launch.py`
 
 The package is intentionally generic. It does not contain project-specific
 robot orchestration. A project package can consume these launchers and pass its
@@ -23,8 +23,8 @@ The runtime entry points are:
 
 - `launch/spawn_world.launch.py`
 - `launch/spawn_gui.launch.py`
-- `scripts/spawn_gz_entity`
-- `scripts/delete_gz_entity`
+- `launch/spawn_model.launch.py`
+- `launch/remove_model.launch.py`
 
 `spawn_world.launch.py` performs this sequence:
 
@@ -43,8 +43,9 @@ project-facing name for the bridge YAML file and passes it to the bridge as
 `spawn_gui.launch.py` starts only the Gazebo GUI client with `gz sim -g`.
 It does not start the Gazebo server and it does not create bridges.
 
-`spawn_gz_entity` and `delete_gz_entity` are command-line helpers for dynamic
-Gazebo entity management after a world is running.
+`spawn_model.launch.py` and `remove_model.launch.py` wrap the corresponding
+`ros_gz_sim` model creation and removal nodes for dynamic Gazebo entity
+management after a world is running.
 
 ## Dependencies
 

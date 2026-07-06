@@ -7,8 +7,6 @@ install(DIRECTORY config meshes models worlds DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 
 install(PROGRAMS
-  scripts/delete_gz_entity
-  scripts/spawn_gz_entity
   scripts/wait_for_gz_service.py
   DESTINATION lib/${PROJECT_NAME}
 )
