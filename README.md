@@ -10,11 +10,12 @@
 - Reusable launch helpers for Gazebo world bringup:
   - `launch/spawn_world.launch.py`
   - `launch/spawn_gui.launch.py`
-  - `scripts/wait_for_gz_service.py`
+  - `scripts/spawn_gz_entity`
+  - `scripts/delete_gz_entity`
 
 The package is intentionally generic. It does not contain project-specific
 robot orchestration. A project package can consume these launchers and pass its
-own YAML files for world, obstacle, and bridge configuration.
+own SDF world and bridge YAML files.
 
 ## Runtime Behavior
 
@@ -22,22 +23,28 @@ The runtime entry points are:
 
 - `launch/spawn_world.launch.py`
 - `launch/spawn_gui.launch.py`
-- `scripts/wait_for_gz_service.py`
+- `scripts/spawn_gz_entity`
+- `scripts/delete_gz_entity`
 
 `spawn_world.launch.py` performs this sequence:
 
-1. Read one YAML file that defines the world and the fixed obstacles to spawn.
+1. Read one SDF file that defines the world to launch.
 2. Read one YAML file that defines the ROS-Gazebo bridges.
-3. Start the Gazebo server through `ros_gz_sim.launch.py`.
+3. Start the Gazebo server through `ros_gz_sim.actions.GzServer`.
 4. Optionally start the Gazebo GUI as a separate client process.
-5. Wait until Gazebo exposes `/world/<world_name>/create`.
-6. Spawn each enabled obstacle through `ros_gz_sim/gz_spawn_model.launch.py`.
+
+`spawn_world.launch.py` starts the world bridge through
+`ros_gz_bridge.actions.RosGzBridge`. It uses `world_bridge_file` as the
+project-facing name for the bridge YAML file and passes it to the bridge as
+`config_file`. It also exposes typed bridge parameters for
+`bridge_subscription_heartbeat`, `bridge_expand_gz_topic_names`,
+`bridge_override_timestamps_with_wall_time`, and `bridge_override_frame_id`.
 
 `spawn_gui.launch.py` starts only the Gazebo GUI client with `gz sim -g`.
 It does not start the Gazebo server and it does not create bridges.
 
-`wait_for_gz_service.py` is a small helper used by the launch files. It polls
-`gz service -l` until a requested Gazebo Transport service appears.
+`spawn_gz_entity` and `delete_gz_entity` are command-line helpers for dynamic
+Gazebo entity management after a world is running.
 
 ## Dependencies
 
@@ -99,14 +106,13 @@ source install/setup.bash
 
 ## Example Usage
 
-Launch a world, its bridges, and the fixed obstacles defined by a project
-package:
+Launch a world and its bridges:
 
 ```bash
 ros2 launch ros_gz_tools spawn_world.launch.py \
-  simulation_world_obstacles_file:=package://simulation/config/simulation_world_obstacles.yaml \
-  simulation_world_bridge_file:=package://simulation/config/simulation_bridge.yaml \
-  gz_gui:=True
+  world_sdf_file:=/absolute/path/to/world.sdf \
+  world_bridge_file:=/absolute/path/to/world_bridge.yaml \
+  use_gz_gui:=True
 ```
 
 Launch only the Gazebo GUI client:
