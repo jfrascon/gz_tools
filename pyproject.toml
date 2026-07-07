@@ -5,6 +5,7 @@
 # - how individual Ruff rule families are configured
 [tool.ruff]
 line-length = 120
+src = []
 
 [tool.ruff.format]
 # Use single quotes for regular Python strings.
@@ -45,4 +46,5 @@ inline-quotes = "single"
 docstring-quotes = "double"
 
 [tool.ruff.lint.isort]
+no-lines-before = ["first-party", "local-folder"]
 split-on-trailing-comma = false
