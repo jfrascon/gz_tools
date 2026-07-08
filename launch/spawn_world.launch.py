@@ -162,25 +162,31 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         list[LaunchDescriptionEntity]: Actions that launch the world server,
         bridge, and optional GUI client.
     """
-    world_sdf_file = LaunchConfiguration('world_sdf_file').perform(ctx).strip()
-    world_sdf_string = LaunchConfiguration('world_sdf_string').perform(ctx).strip()
-    bridge_name = LaunchConfiguration('bridge_name').perform(ctx).strip()
-    world_bridge_file = LaunchConfiguration('world_bridge_file').perform(ctx).strip()
+    world_sdf_file = LaunchConfiguration('world_sdf_file').perform(ctx)
+    world_sdf_string = LaunchConfiguration('world_sdf_string').perform(ctx)
 
-    if not world_sdf_file and not world_sdf_string:
-        raise ValueError("Launch argument 'world_sdf_file' or 'world_sdf_string' must be provided")
-
-    if not world_bridge_file:
-        raise ValueError("Launch argument 'world_bridge_file' must be provided")
+    # Exactly one world source must be set. bool(...) turns each string into "is present":
+    # False means the string is empty and True means the user provided a value. If both
+    # booleans are equal, either both sources are missing or both sources were provided.
+    if bool(world_sdf_file) == bool(world_sdf_string):
+        raise ValueError("Exactly one of launch arguments 'world_sdf_file' or 'world_sdf_string' must be provided")
 
     if world_sdf_file and not Path(world_sdf_file).is_file():
         raise FileNotFoundError(f"World SDF file '{world_sdf_file}' not found")
 
+    world_name = _get_world_name(world_sdf_file) if world_sdf_file else _get_world_name_from_string(world_sdf_string)
+
+    world_bridge_file = LaunchConfiguration('world_bridge_file').perform(ctx)
+
+    if not world_bridge_file:
+        raise ValueError("Launch argument 'world_bridge_file' must be provided")
+
     if not Path(world_bridge_file).is_file():
         raise FileNotFoundError(f"World bridge file '{world_bridge_file}' not found")
 
-    world_name = _get_world_name(world_sdf_file) if world_sdf_file else _get_world_name_from_string(world_sdf_string)
+    bridge_name = LaunchConfiguration('bridge_name').perform(ctx)
     world_bridge_name = bridge_name or f'{world_name}_bridge'
+
     extra_bridge_params: ParametersDict = {
         (TextSubstitution(text='subscription_heartbeat'),): ParameterValue(
             LaunchConfiguration('bridge_subscription_heartbeat'), value_type=int
