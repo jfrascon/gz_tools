@@ -31,8 +31,21 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('Y', default_value='0.0', description='Initial robot yaw in radians'),
             DeclareLaunchArgument(
                 'node_output',
-                default_value='screen',
+                default_value='both',
+                choices=['both', 'screen', 'log', 'own_log', 'full'],
                 description='Output configuration for the ros_gz_sim create process',
+            ),
+            DeclareLaunchArgument(
+                'node_emulate_tty',
+                default_value='False',
+                choices=['False', 'True'],
+                description='Whether to emulate a terminal for the ros_gz_sim create process',
+            ),
+            DeclareLaunchArgument(
+                'node_log_level',
+                default_value='info',
+                choices=['debug', 'info', 'warn', 'error', 'fatal'],
+                description='ROS log level passed to the ros_gz_sim create process',
             ),
             LogInfo(
                 msg=[
@@ -62,7 +75,9 @@ def generate_launch_description() -> LaunchDescription:
                         'Y': LaunchConfiguration('Y'),
                     }
                 ],
+                arguments=['--ros-args', '--log-level', LaunchConfiguration('node_log_level')],
                 output=LaunchConfiguration('node_output'),
+                emulate_tty=LaunchConfiguration('node_emulate_tty'),
             ),
         ]
     )
