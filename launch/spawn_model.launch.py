@@ -39,12 +39,6 @@ def generate_launch_description() -> LaunchDescription:
                 description='Output configuration for the ros_gz_sim create process',
             ),
             DeclareLaunchArgument(
-                'node_emulate_tty',
-                default_value='False',
-                choices=['False', 'True'],
-                description='Whether to emulate a terminal for the ros_gz_sim create process',
-            ),
-            DeclareLaunchArgument(
                 'node_log_level',
                 default_value='info',
                 choices=['debug', 'info', 'warn', 'error', 'fatal'],
@@ -80,7 +74,6 @@ def generate_launch_description() -> LaunchDescription:
                 ],
                 arguments=['--ros-args', '--log-level', LaunchConfiguration('node_log_level')],
                 output=LaunchConfiguration('node_output'),
-                emulate_tty=LaunchConfiguration('node_emulate_tty'),
             ),
         ]
     )
