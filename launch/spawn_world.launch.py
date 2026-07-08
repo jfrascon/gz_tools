@@ -10,7 +10,6 @@ This launch file is inspired in the file
 `/opt/ros/jazzy/share/ros_gz_sim/launch/ros_gz_sim.launch.py`
 """
 
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from launch import LaunchContext, LaunchDescription, LaunchDescriptionEntity
@@ -23,6 +22,7 @@ from launch_ros.parameters_type import ParametersDict
 from launch_ros.substitutions import FindPackageShare
 from ros_gz_bridge.actions import RosGzBridge
 from ros_gz_sim.actions import GzServer
+from ros_gz_tools.helpers import get_world_name, get_world_name_from_string
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -115,42 +115,6 @@ def generate_launch_description() -> LaunchDescription:
     )
 
 
-def _get_world_name_from_root(root: ET.Element, source: str) -> str:
-    """Return the internal Gazebo world name defined in an SDF root element."""
-    world = root.find('world')
-
-    if world is None:
-        raise ValueError(f"World SDF '{source}' does not contain a <world> element")
-
-    world_name = world.get('name')
-
-    if not world_name:
-        raise ValueError(f"World SDF '{source}' does not define a name in its <world> element")
-
-    return world_name
-
-
-def _get_world_name(world_file: str) -> str:
-    """
-    Return the internal Gazebo world name defined in an SDF file.
-
-    Gazebo services such as `/world/<world_name>/create` use the `<world>` name
-    stored inside the SDF document.
-
-    Args:
-        world_file: Absolute path to the SDF world file.
-
-    Returns:
-        str: The world name stored in the `<world name="...">` element.
-    """
-    return _get_world_name_from_root(ET.parse(world_file).getroot(), world_file)
-
-
-def _get_world_name_from_string(world_sdf_string: str) -> str:
-    """Return the internal Gazebo world name defined in an SDF string."""
-    return _get_world_name_from_root(ET.fromstring(world_sdf_string), 'world_sdf_string')
-
-
 def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     """
     Build the actions that start Gazebo, the world bridge, and the optional GUI.
@@ -174,7 +138,7 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     if world_sdf_file and not Path(world_sdf_file).is_file():
         raise FileNotFoundError(f"World SDF file '{world_sdf_file}' not found")
 
-    world_name = _get_world_name(world_sdf_file) if world_sdf_file else _get_world_name_from_string(world_sdf_string)
+    world_name = get_world_name(world_sdf_file) if world_sdf_file else get_world_name_from_string(world_sdf_string)
 
     world_bridge_file = LaunchConfiguration('world_bridge_file').perform(ctx)
 
@@ -185,7 +149,7 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         raise FileNotFoundError(f"World bridge file '{world_bridge_file}' not found")
 
     bridge_name = LaunchConfiguration('bridge_name').perform(ctx)
-    world_bridge_name = bridge_name or f'{world_name}_bridge'
+    world_bridge_name = bridge_name or f'{world_name}_ros_gz_bridge'
 
     extra_bridge_params: ParametersDict = {
         (TextSubstitution(text='subscription_heartbeat'),): ParameterValue(
