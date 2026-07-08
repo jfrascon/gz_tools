@@ -21,7 +21,10 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('topic', default_value='', description='Get XML from this topic'),
             DeclareLaunchArgument('entity_name', description='Name assigned to the spawned Gazebo entity'),
             DeclareLaunchArgument(
-                'allow_renaming', default_value='False', description='Whether the entity allows renaming or not'
+                'allow_renaming',
+                default_value='False',
+                choices=['True', 'true', 'False', 'false'],
+                description='Whether the entity allows renaming or not',
             ),
             DeclareLaunchArgument('x', default_value='0.0', description='Initial robot X position in meters'),
             DeclareLaunchArgument('y', default_value='0.0', description='Initial robot Y position in meters'),

@@ -35,10 +35,16 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             DeclareLaunchArgument(name='namespace', default_value='', description='Top-level namespace of the bridge'),
-            DeclareLaunchArgument('use_composition', default_value='False', description='Use composed bringup if True'),
+            DeclareLaunchArgument(
+                'use_composition',
+                default_value='False',
+                choices=['True', 'true', 'False', 'false'],
+                description='Use composed bringup if True',
+            ),
             DeclareLaunchArgument(
                 'create_own_container',
                 default_value='False',
+                choices=['True', 'true', 'False', 'false'],
                 description='Whether we should start a ROS container when using composition.',
             ),
             DeclareLaunchArgument(
@@ -52,6 +58,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'verbosity_level',
                 default_value='4',
+                choices=['0', '1', '2', '3', '4'],
                 description='The verbosity level of the Gazebo server (0=FATAL, 4=DEBUG)',
             ),
             DeclareLaunchArgument(
@@ -94,9 +101,15 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'bridge_use_respawn',
                 default_value='False',
+                choices=['True', 'true', 'False', 'false'],
                 description='Whether to respawn the bridge if it crashes. Applied when composition is disabled.',
             ),
-            DeclareLaunchArgument('bridge_log_level', default_value='info', description='Bridge log level'),
+            DeclareLaunchArgument(
+                'bridge_log_level',
+                default_value='info',
+                choices=['debug', 'info', 'warn', 'error', 'fatal'],
+                description='Bridge log level',
+            ),
             OpaqueFunction(function=_spawn_world),
         ]
     )
