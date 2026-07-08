@@ -72,7 +72,7 @@ def generate_launch_description() -> LaunchDescription:
                         'Y': LaunchConfiguration('Y'),
                     }
                 ],
-                arguments=['--ros-args', '--log-level', LaunchConfiguration('node_log_level')],
+                ros_arguments=['--log-level', LaunchConfiguration('node_log_level')],
                 output=LaunchConfiguration('node_output'),
             ),
         ]
