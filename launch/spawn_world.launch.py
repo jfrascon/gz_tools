@@ -6,7 +6,7 @@ configured by a YAML bridge file, and can optionally start the Gazebo GUI as a
 separate client process. Static project obstacles should normally live directly
 in the SDF world file. Dynamic entities can be spawned by a separate tool.
 
-This launch file is inspired in the file
+This launch file is inspired by the file
 `/opt/ros/jazzy/share/ros_gz_sim/launch/ros_gz_sim.launch.py`
 """
 
@@ -34,26 +34,28 @@ def generate_launch_description() -> LaunchDescription:
     """
     return LaunchDescription(
         [
-            DeclareLaunchArgument(name='namespace', default_value='', description='Top-level namespace of the bridge'),
+            DeclareLaunchArgument(
+                name='namespace', default_value='', description='Top-level namespace used by the world bridge'
+            ),
             DeclareLaunchArgument(
                 'use_composition',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
-                description='Use composed bringup if True',
+                description='Load compatible Gazebo and bridge processes into a ROS component container if true',
             ),
             DeclareLaunchArgument(
                 'create_own_container',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
-                description='Whether we should start a ROS container when using composition.',
+                description='Start a dedicated ROS component container when composition is enabled',
             ),
             DeclareLaunchArgument(
                 'container_name',
                 default_value='ros_gz_container',
-                description='Name of container that nodes will load in if use composition',
+                description='Name of the ROS component container used when composition is enabled',
             ),
             DeclareLaunchArgument('world_sdf_file', default_value='', description='Path to the SDF world file'),
-            DeclareLaunchArgument('world_sdf_string', default_value='', description='SDF world string'),
+            DeclareLaunchArgument('world_sdf_string', default_value='', description='Inline SDF world XML string'),
             DeclareLaunchArgument('initial_sim_time', default_value='0.0', description='The initial simulation time'),
             DeclareLaunchArgument(
                 'verbosity_level',
@@ -73,9 +75,11 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'world_bridge_file',
                 default_value='',
-                description='YAML file used to configure ros_gz_bridge for the simulation world',
+                description='YAML file used to configure the ROS-GZ bridge for the simulation world',
             ),
-            DeclareLaunchArgument('bridge_name', default_value='', description='Name of the bridge'),
+            DeclareLaunchArgument(
+                'bridge_name', default_value='', description='Name assigned to the ROS-GZ bridge action'
+            ),
             DeclareLaunchArgument(
                 'bridge_subscription_heartbeat',
                 default_value='1000',
@@ -85,18 +89,18 @@ def generate_launch_description() -> LaunchDescription:
                 'bridge_expand_gz_topic_names',
                 default_value='True',
                 choices=['True', 'true', 'False', 'false'],
-                description='Expand Gazebo topic names when bridging topics',
+                description='Expand Gazebo topic names in bridge rules',
             ),
             DeclareLaunchArgument(
                 'bridge_override_timestamps_with_wall_time',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
-                description='Replace bridged message timestamps with wall time',
+                description='Replace bridged message timestamps with wall-clock time',
             ),
             DeclareLaunchArgument(
                 'bridge_override_frame_id',
                 default_value='',
-                description='Frame id override applied by ros_gz_bridge when supported',
+                description='Frame ID override applied by the bridge when supported',
             ),
             DeclareLaunchArgument(
                 'bridge_use_respawn',
@@ -108,7 +112,7 @@ def generate_launch_description() -> LaunchDescription:
                 'bridge_log_level',
                 default_value='info',
                 choices=['debug', 'info', 'warn', 'error', 'fatal'],
-                description='Bridge log level',
+                description='ROS-GZ bridge log level',
             ),
             OpaqueFunction(function=_spawn_world),
         ]
@@ -123,8 +127,7 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         ctx: Launch context used to resolve the launch arguments.
 
     Returns:
-        list[LaunchDescriptionEntity]: Actions that launch the world server,
-        bridge, and optional GUI client.
+        list[LaunchDescriptionEntity]: Actions that launch the world server, bridge, and optional GUI client.
     """
     world_sdf_file = LaunchConfiguration('world_sdf_file').perform(ctx)
     world_sdf_string = LaunchConfiguration('world_sdf_string').perform(ctx)
@@ -146,10 +149,10 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
         raise ValueError("Launch argument 'world_bridge_file' must be provided")
 
     if not Path(world_bridge_file).is_file():
-        raise FileNotFoundError(f"World bridge file '{world_bridge_file}' not found")
+        raise FileNotFoundError(f"World ROS-GZ bridge file '{world_bridge_file}' not found")
 
     bridge_name = LaunchConfiguration('bridge_name').perform(ctx)
-    world_bridge_name = bridge_name or f'{world_name}_ros_gz_bridge'
+    world_bridge_name = bridge_name or f'{world_name}_bridge'
 
     extra_bridge_params: ParametersDict = {
         (TextSubstitution(text='subscription_heartbeat'),): ParameterValue(
