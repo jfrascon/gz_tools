@@ -2,4 +2,4 @@ repositories:
     ros2_launch_helpers:
         type: git
         url: https://github.com/jfrascon/ros2_launch_helpers.git
-        version: a076257c11a1761ed8ccdf07e1da3d60c827a1ef
+        version: e7767940b5f11a9ab1efc724e2ed0ff915fb1a41
