@@ -38,78 +38,80 @@ def generate_launch_description() -> LaunchDescription:
                 name='namespace', default_value='', description='Top-level namespace used by the world bridge'
             ),
             DeclareLaunchArgument(
-                'use_composition',
+                'gzserver_use_composition',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
                 description='Load compatible Gazebo and bridge processes into a ROS component container if true',
             ),
             DeclareLaunchArgument(
-                'create_own_container',
+                'gzserver_create_own_container',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
                 description='Start a dedicated ROS component container when composition is enabled',
             ),
             DeclareLaunchArgument(
-                'container_name',
+                'gzserver_container_name',
                 default_value='ros_gz_container',
                 description='Name of the ROS component container used when composition is enabled',
             ),
-            DeclareLaunchArgument('world_sdf_file', default_value='', description='Path to the SDF world file'),
-            DeclareLaunchArgument('world_sdf_string', default_value='', description='Inline SDF world XML string'),
-            DeclareLaunchArgument('initial_sim_time', default_value='0.0', description='The initial simulation time'),
             DeclareLaunchArgument(
-                'verbosity_level',
+                'gzserver_initial_sim_time', default_value='0.0', description='The initial simulation time'
+            ),
+            DeclareLaunchArgument(
+                'gzserver_verbosity_level',
                 default_value='4',
                 choices=['0', '1', '2', '3', '4'],
                 description='The verbosity level of the Gazebo server (0=FATAL, 4=DEBUG)',
             ),
             DeclareLaunchArgument(
-                'use_gz_gui',
+                'gzgui_enabled',
                 default_value='True',
                 choices=['True', 'true', 'False', 'false'],
                 description='Launch Gazebo Sim GUI client. If False, Gazebo Sim runs in headless mode',
             ),
             DeclareLaunchArgument(
-                'gz_gui_config_file', default_value='', description='Gazebo Sim GUI client configuration file'
+                'gzgui_config_file', default_value='', description='Gazebo Sim GUI client configuration file'
+            ),
+            DeclareLaunchArgument('world_sdf_file', default_value='', description='Path to the SDF world file'),
+            DeclareLaunchArgument('world_sdf_string', default_value='', description='Inline SDF world XML string'),
+            DeclareLaunchArgument(
+                'world_bridge_name', default_value='', description='Name assigned to the ROS-GZ bridge action'
             ),
             DeclareLaunchArgument(
-                'world_bridge_file',
+                'world_bridge_config_file',
                 default_value='',
                 description='YAML file used to configure the ROS-GZ bridge for the simulation world',
             ),
             DeclareLaunchArgument(
-                'bridge_name', default_value='', description='Name assigned to the ROS-GZ bridge action'
-            ),
-            DeclareLaunchArgument(
-                'bridge_subscription_heartbeat',
+                'world_bridge_subscription_heartbeat',
                 default_value='1000',
                 description='Milliseconds between bridge subscription heartbeat checks',
             ),
             DeclareLaunchArgument(
-                'bridge_expand_gz_topic_names',
+                'world_bridge_expand_gz_topic_names',
                 default_value='True',
                 choices=['True', 'true', 'False', 'false'],
                 description='Expand Gazebo topic names in bridge rules',
             ),
             DeclareLaunchArgument(
-                'bridge_override_timestamps_with_wall_time',
+                'world_bridge_override_timestamps_with_wall_time',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
                 description='Replace bridged message timestamps with wall-clock time',
             ),
             DeclareLaunchArgument(
-                'bridge_override_frame_id',
+                'world_bridge_override_frame_id',
                 default_value='',
                 description='Frame ID override applied by the bridge when supported',
             ),
             DeclareLaunchArgument(
-                'bridge_use_respawn',
+                'world_bridge_use_respawn',
                 default_value='False',
                 choices=['True', 'true', 'False', 'false'],
                 description='Whether to respawn the bridge if it crashes. Applied when composition is disabled.',
             ),
             DeclareLaunchArgument(
-                'bridge_log_level',
+                'world_bridge_log_level',
                 default_value='info',
                 choices=['debug', 'info', 'warn', 'error', 'fatal'],
                 description='ROS-GZ bridge log level',
@@ -143,63 +145,63 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
 
     world_name = get_world_name(world_sdf_file) if world_sdf_file else get_world_name_from_string(world_sdf_string)
 
-    world_bridge_file = LaunchConfiguration('world_bridge_file').perform(ctx)
+    world_bridge_config_file = LaunchConfiguration('world_bridge_config_file').perform(ctx)
 
-    if not world_bridge_file:
-        raise ValueError("Launch argument 'world_bridge_file' must be provided")
+    if not world_bridge_config_file:
+        raise ValueError("Launch argument 'world_bridge_config_file' must be provided")
 
-    if not Path(world_bridge_file).is_file():
-        raise FileNotFoundError(f"World ROS-GZ bridge file '{world_bridge_file}' not found")
+    if not Path(world_bridge_config_file).is_file():
+        raise FileNotFoundError(f"World ROS-GZ bridge file '{world_bridge_config_file}' not found")
 
-    bridge_name = LaunchConfiguration('bridge_name').perform(ctx)
-    world_bridge_name = bridge_name or f'{world_name}_bridge'
+    world_bridge_name = LaunchConfiguration('world_bridge_name').perform(ctx)
+    effective_world_bridge_name = world_bridge_name or f'{world_name}_bridge'
 
     extra_bridge_params: ParametersDict = {
         (TextSubstitution(text='subscription_heartbeat'),): ParameterValue(
-            LaunchConfiguration('bridge_subscription_heartbeat'), value_type=int
+            LaunchConfiguration('world_bridge_subscription_heartbeat'), value_type=int
         ),
         (TextSubstitution(text='expand_gz_topic_names'),): ParameterValue(
-            LaunchConfiguration('bridge_expand_gz_topic_names'), value_type=bool
+            LaunchConfiguration('world_bridge_expand_gz_topic_names'), value_type=bool
         ),
         (TextSubstitution(text='override_timestamps_with_wall_time'),): ParameterValue(
-            LaunchConfiguration('bridge_override_timestamps_with_wall_time'), value_type=bool
+            LaunchConfiguration('world_bridge_override_timestamps_with_wall_time'), value_type=bool
         ),
         (TextSubstitution(text='override_frame_id'),): ParameterValue(
-            LaunchConfiguration('bridge_override_frame_id'), value_type=str
+            LaunchConfiguration('world_bridge_override_frame_id'), value_type=str
         ),
     }
 
     launch_entities: list[LaunchDescriptionEntity] = [
         LogInfo(msg=f'World file: {world_sdf_file}'),
-        LogInfo(msg=f'Bridge file: {world_bridge_file}'),
-        LogInfo(msg=f'Bridge name: {world_bridge_name}'),
+        LogInfo(msg=f'Bridge file: {world_bridge_config_file}'),
+        LogInfo(msg=f'Bridge name: {effective_world_bridge_name}'),
         LogInfo(msg=f'World name: {world_name}'),
-        LogInfo(msg=f'Launch GUI: {LaunchConfiguration("use_gz_gui").perform(ctx).strip()}'),
+        LogInfo(msg=f'Launch GUI: {LaunchConfiguration("gzgui_enabled").perform(ctx).strip()}'),
         GzServer(
             world_sdf_file=LaunchConfiguration('world_sdf_file'),
             world_sdf_string=LaunchConfiguration('world_sdf_string'),
-            container_name=LaunchConfiguration('container_name'),
-            create_own_container=LaunchConfiguration('create_own_container'),
-            use_composition=LaunchConfiguration('use_composition'),
-            initial_sim_time=LaunchConfiguration('initial_sim_time'),
-            verbosity_level=LaunchConfiguration('verbosity_level'),
+            container_name=LaunchConfiguration('gzserver_container_name'),
+            create_own_container=LaunchConfiguration('gzserver_create_own_container'),
+            use_composition=LaunchConfiguration('gzserver_use_composition'),
+            initial_sim_time=LaunchConfiguration('gzserver_initial_sim_time'),
+            verbosity_level=LaunchConfiguration('gzserver_verbosity_level'),
         ),
         RosGzBridge(
-            bridge_name=world_bridge_name,
-            config_file=world_bridge_file,
-            container_name=LaunchConfiguration('container_name'),
+            bridge_name=effective_world_bridge_name,
+            config_file=world_bridge_config_file,
+            container_name=LaunchConfiguration('gzserver_container_name'),
             create_own_container=False,
             namespace=LaunchConfiguration('namespace'),
-            use_composition=LaunchConfiguration('use_composition'),
-            use_respawn=LaunchConfiguration('bridge_use_respawn'),
-            log_level=LaunchConfiguration('bridge_log_level'),
+            use_composition=LaunchConfiguration('gzserver_use_composition'),
+            use_respawn=LaunchConfiguration('world_bridge_use_respawn'),
+            log_level=LaunchConfiguration('world_bridge_log_level'),
             bridge_params='',
             extra_bridge_params=extra_bridge_params,
         ),
     ]
 
     launch_gui = perform_typed_substitution(
-        ctx, normalize_typed_substitution(LaunchConfiguration('use_gz_gui'), bool), bool
+        ctx, normalize_typed_substitution(LaunchConfiguration('gzgui_enabled'), bool), bool
     )
 
     if launch_gui:
@@ -208,7 +210,7 @@ def _spawn_world(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
                 PythonLaunchDescriptionSource(
                     PathJoinSubstitution([FindPackageShare('ros_gz_tools'), 'launch', 'spawn_gui.launch.py'])
                 ),
-                launch_arguments={'gz_gui_config_file': LaunchConfiguration('gz_gui_config_file')}.items(),
+                launch_arguments={'gzgui_config_file': LaunchConfiguration('gzgui_config_file')}.items(),
             )
         )
 

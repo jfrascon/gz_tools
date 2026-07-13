@@ -29,7 +29,7 @@ def generate_launch_description() -> LaunchDescription:
             # The GUI layout file is optional. When omitted, Gazebo uses its
             # default client layout.
             DeclareLaunchArgument(
-                'gz_gui_config_file', default_value='', description='Gazebo Sim GUI client configuration file'
+                'gzgui_config_file', default_value='', description='Gazebo Sim GUI client configuration file'
             ),
             OpaqueFunction(function=_spawn_gui),
         ]
@@ -48,7 +48,7 @@ def _spawn_gui(ctx: LaunchContext) -> list[LaunchDescriptionEntity]:
     """
     # Start from the GUI-only Gazebo command. This launcher never starts the
     # server because the server is expected to be launched elsewhere.
-    gui_config_file = LaunchConfiguration('gz_gui_config_file').perform(ctx).strip()
+    gui_config_file = LaunchConfiguration('gzgui_config_file').perform(ctx)
     gui_cmd = ['gz', 'sim', '-g']
 
     # If the caller provided a GUI layout file, validate it early and pass it
