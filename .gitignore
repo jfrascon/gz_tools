@@ -1,20 +1,43 @@
-# Python caches
-__pycache__/
-*.py[cod]
-
-# Test and tooling caches
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-
-# ROS/colcon build artifacts
+# ROS workspace artifacts
 build/
 install/
+devel/
 log/
 
-# Editors and OS files
+# Local dependencies
+src/0_deps/
+.devcontainer/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.ruff_cache
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+env/
+
+# Tooling
+.cache/
+.pre-commit-cache/
+.devcontainer/
+.codex/
+.copilot/
+.github
+
+# Editors / OS
 .vscode/
 .idea/
 *.swp
+*.swo
 *~
 .DS_Store
+Thumbs.db
+*.code-workspace
