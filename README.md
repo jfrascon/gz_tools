@@ -175,3 +175,8 @@ ros2 launch ros_gz_tools remove_model.launch.py \
   world_name:=factory \
   model_entity_name:=robot_01
 ```
+
+## License
+
+This package is distributed under the Apache License 2.0.
+See [LICENSE](LICENSE).

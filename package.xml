@@ -1,48 +1,47 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>ros_gz_tools</name>
-    <version>1.0.0</version>
-    <description> Gazebo Sim models, meshes, worlds, and reusable launch helpers for world bringup, GUI startup, and obstacle spawning. </description>
-    <maintainer email="jfrascon@gmail.com">Juan Francisco Rascon Crespo</maintainer>
-    <license>Apache-2.0</license>
+  <name>ros_gz_tools</name>
+  <version>1.0.0</version>
+  <description>Gazebo Sim resources and reusable launch helpers for simulation bringup.</description>
+  <maintainer email="jfrascon@gmail.com">Juan Francisco Rascon Crespo</maintainer>
+  <license>Apache-2.0</license>
 
-    <buildtool_depend>ament_cmake</buildtool_depend>
-    <buildtool_depend>ament_cmake_python</buildtool_depend>
-    <exec_depend>ament_index_python</exec_depend>
-    <exec_depend>launch</exec_depend>
-    <exec_depend>launch_ros</exec_depend>
-    <exec_depend>ros2_launch_helpers</exec_depend>
-    <exec_depend>ros_gz_bridge</exec_depend>
-    <exec_depend>ros_gz_sim</exec_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-    <test_depend>ament_lint_auto</test_depend>
-    <test_depend>ament_lint_common</test_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ros2_launch_helpers</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
 
-    <export>
-        <build_type>ament_cmake</build_type>
-        <!--
-        `ros_gz_sim` reads these `gazebo_ros` exports and appends them to
-        `GZ_SIM_RESOURCE_PATH` before `gzserver` starts.
+  <test_depend>ament_cmake_flake8</test_depend>
+  <test_depend>ament_cmake_lint_cmake</test_depend>
+  <test_depend>ament_cmake_pep257</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>ament_cmake_xmllint</test_depend>
+  <test_depend>ament_index_python</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>python3-pytest</test_depend>
 
-        This package uses both of these URI patterns inside SDF files:
-        - `package://ros_gz_tools/...` for worlds and top-level model files
-        - `model://<model_name>/...` inside model-local mesh references
+  <export>
+    <build_type>ament_cmake</build_type>
+    <!--
+    ros_gz_sim reads these gazebo_ros exports and appends them to GZ_SIM_RESOURCE_PATH before the
+    Gazebo server starts.
 
-        Gazebo therefore needs two search roots:
-        - `${prefix}/..` so `package://ros_gz_tools/...` resolves from `share/`
-        - `${prefix}/models` so `model://<model_name>/...` resolves from the models directory
+    This package uses both URI patterns inside SDF files:
+    - package://ros_gz_tools/... for worlds and top-level model files
+    - model://&lt;model_name&gt;/... for model-local mesh references
 
-        Reference: https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_sim#using-gazebo_ros-to-export-model-paths-in-packagexml
-        -->
-        <gazebo_ros gazebo_model_path="${prefix}/.."/>
-        <gazebo_ros gazebo_model_path="${prefix}/models"/>
-        <!--
-        This package currently does not export additional media-only or
-        plugin-only directories. Keep these examples here as a template for
-        future additions.
-        <gazebo_ros gazebo_media_path="<path/to/media_resources>"/>
-        <gazebo_ros plugin_path="<path/to/plugins>"/>
-        -->
-    </export>
+    Gazebo therefore needs two search roots:
+    - ${prefix}/.. lets package://ros_gz_tools/... resolve from share/
+    - ${prefix}/models lets model://&lt;model_name&gt;/... resolve from the models directory
+
+    Reference:
+    https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_sim#using-gazebo_ros-to-export-model-paths-in-packagexml
+    -->
+    <gazebo_ros gazebo_model_path="${prefix}/.."/>
+    <gazebo_ros gazebo_model_path="${prefix}/models"/>
+  </export>
 </package>
