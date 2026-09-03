@@ -1,124 +1,177 @@
 # [`ros_gz_tools`](https://github.com/jfrascon/ros_gz_tools)
 
-`ros_gz_tools` is a ROS 2 package that provides two kinds of content:
+`ros_gz_tools` provides reusable ROS 2 launch files and package-owned resources for Gazebo Sim.
+It starts worlds, bridges and the Gazebo GUI, and it can create or remove model entities after a world is running.
+Robot-specific orchestration belongs in the package that owns each robot, not in this generic package.
 
-- Gazebo Sim resources owned by the package:
-  - worlds under `worlds/`
-  - models under `models/`
-  - meshes under `meshes/`
-  - GUI configuration under `config/`
-- Reusable launch helpers for Gazebo world bringup:
-  - `launch/spawn_world.launch.py`
-  - `launch/spawn_gui.launch.py`
-  - `launch/spawn_model.launch.py`
-  - `launch/remove_model.launch.py`
+## Installed resources
 
-The package is intentionally generic. It does not contain project-specific
-robot orchestration. A project package can consume these launchers and pass its
-own SDF world and bridge YAML files.
+The package installs:
 
-## Runtime Behavior
+- Gazebo worlds under `worlds/`.
+- Gazebo models under `models/`.
+- Shared meshes under `meshes/`.
+- The Gazebo GUI layout under `config/gui.config`.
+- Reusable launch files under `launch/`.
+- `wait_for_gz_service.py` under `lib/ros_gz_tools/`.
 
-The runtime entry points are:
+## Launch files
 
-- `launch/spawn_world.launch.py`
-- `launch/spawn_gui.launch.py`
-- `launch/spawn_model.launch.py`
-- `launch/remove_model.launch.py`
+### `spawn_world.launch.py`
 
-`spawn_world.launch.py` performs this sequence:
+This launch file starts one Gazebo server and one ROS-Gazebo bridge.
+It optionally starts the Gazebo GUI as a separate client.
 
-1. Read one SDF file that defines the world to launch.
-2. Read one YAML file that defines the ROS-Gazebo bridges.
-3. Start the Gazebo server through `ros_gz_sim.actions.GzServer`.
-4. Optionally start the Gazebo GUI as a separate client process.
+Exactly one world source must be provided:
 
-`spawn_world.launch.py` starts the world bridge through
-`ros_gz_bridge.actions.RosGzBridge`. It uses `world_bridge_file` as the
-project-facing name for the bridge YAML file and passes it to the bridge as
-`config_file`. It also exposes typed bridge parameters for
-`bridge_subscription_heartbeat`, `bridge_expand_gz_topic_names`,
-`bridge_override_timestamps_with_wall_time`, and `bridge_override_frame_id`.
+- `world_sdf_file`: path to an SDF world file.
+- `world_sdf_string`: complete SDF world XML supplied as a string.
 
-`spawn_gui.launch.py` starts only the Gazebo GUI client with `gz sim -g`.
-It does not start the Gazebo server and it does not create bridges.
+`world_bridge_config_file` is required and must identify an existing bridge YAML file.
+`world_bridge_name` is optional; when empty, the launch file uses `<world_name>_bridge`.
 
-`spawn_model.launch.py` and `remove_model.launch.py` wrap the corresponding
-`ros_gz_sim` model creation and removal nodes for dynamic Gazebo entity
-management after a world is running.
+The launch description creates the server action before the bridge action, but it does not wait for Gazebo to finish loading the world before starting the bridge.
+The bridge can start before its Gazebo topics exist and connect when they become available.
+
+The remaining arguments configure Gazebo composition, server verbosity, bridge behavior and the optional GUI.
+Run the following command to inspect their names, defaults and accepted values:
+
+```bash
+ros2 launch ros_gz_tools spawn_world.launch.py --show-args
+```
+
+### `spawn_gui.launch.py`
+
+This launch file starts only the Gazebo GUI process with `gz sim -g`.
+It does not start a Gazebo server or create a bridge.
+
+`gzgui_config_file` is optional.
+When provided, it must be a filesystem path to an existing Gazebo GUI configuration file.
+When omitted, Gazebo uses its default client layout.
+
+### `spawn_model.launch.py`
+
+This launch file starts the `ros_gz_sim create` node to insert one entity into a running world.
+`world_name` and `model_entity_name` are required.
+
+Exactly one model source must be provided:
+
+- `model_sdf_file`: path to an SDF model file.
+- `model_sdf_string`: complete SDF model XML supplied as a string.
+- `model_sdf_topic`: ROS topic that publishes the model XML.
+
+The `model_pose_*` arguments set the initial position in meters and orientation in radians.
+`model_allow_renaming` allows Gazebo to select another entity name when the requested name is already in use.
+
+### `remove_model.launch.py`
+
+This launch file starts the `ros_gz_sim remove` node to remove one entity from a running world.
+`world_name` and `model_entity_name` are required.
+
+### Node arguments
+
+`spawn_model.launch.py` and `remove_model.launch.py` expose one `node_args` JSON object for supported `launch_ros.actions.Node` arguments.
+The default prints to both the screen and the ROS log and selects the `info` ROS log level:
+
+```json
+{"output":"both","ros_arguments":["--log-level","info"]}
+```
+
+The obsolete `model_spawn_node_output`, `model_spawn_node_log_level`, `model_remove_node_output` and `model_remove_node_log_level` arguments are no longer supported.
+Set `output` and `ros_arguments` inside `node_args` instead.
+
+## Waiting for a Gazebo service
+
+`wait_for_gz_service.py` polls the service list returned by `gz service -l`.
+It exits with status `0` when the requested absolute service name appears and status `1` when the timeout expires.
+Both the timeout and polling period must be positive finite numbers.
+
+Example:
+
+```bash
+ros2 run ros_gz_tools wait_for_gz_service.py \
+  /world/factory/create \
+  --timeout 60 \
+  --poll-period 0.25
+```
+
+The current launch files do not invoke this executable automatically.
+Downstream orchestration can use its exit status as a readiness barrier before starting actions that require a Gazebo service.
+
+## Gazebo resource resolution
+
+The SDF files use both `package://ros_gz_tools/...` and `model://<model_name>/...` URIs.
+The package exports these Gazebo search roots:
+
+- The installation `share/` directory resolves `package://ros_gz_tools/...` resources.
+- `share/ros_gz_tools/models` resolves package-owned `model://...` resources.
+
+The exports are declared in `package.xml` and in the package environment hook.
+Source the workspace installation before starting Gazebo so `GZ_SIM_RESOURCE_PATH` contains those paths.
+
+## Maintenance scripts
+
+The scripts used to rebuild package-owned assets are documented in [scripts/README.md](scripts/README.md).
+They are development tools and are not installed as runtime executables.
+Their OpenCV, Shapely and Trimesh dependencies are therefore not runtime dependencies of this ROS package.
 
 ## Dependencies
 
-At runtime, this package depends on:
+Runtime dependencies are declared in `package.xml`:
 
-- `ros_gz_sim`
-- `ros_gz_bridge`
+- `launch`
+- `launch_ros`
 - `ros2_launch_helpers`
+- `ros_gz_bridge`
+- `ros_gz_sim`
 
-`ros2_launch_helpers` is not expected to come from the system packages. The
-repository therefore ships its own [deps.repos](deps.repos) file so the source
-dependency can be fetched with `vcs import` when `ros_gz_tools` is used as a
-standalone repository.
+`deps.repos` pins the source repository used to obtain `ros2_launch_helpers` when this repository is imported independently.
+It complements `package.xml`; it does not replace the ROS dependency declaration.
 
-The dependency is still declared in `package.xml`. `deps.repos` complements
-`package.xml`; it does not replace it.
+## Build and test
 
-## Gazebo Resource Resolution
-
-This package uses both of these URI patterns inside SDF files:
-
-- `package://ros_gz_tools/...`
-- `model://<model_name>/...`
-
-Because both forms are used, the package exports two Gazebo search roots:
-
-- `share/` for `package://ros_gz_tools/...`
-- `share/ros_gz_tools/models` for `model://<model_name>/...`
-
-Those exports are declared in `package.xml`, and the environment hook keeps
-the same paths available in sourced workspaces.
-
-## Maintenance Scripts
-
-The repository also contains scripts that are used only to generate or rebuild
-package-owned assets, for example:
-
-- `scripts/build_stl_from_png.py`
-- `scripts/build_stl_from_png.sh`
-- `meshes/office_environment_1/build_office_environment_1.sh`
-
-These files are not part of the runtime contract of the package:
-
-- they are not installed as runtime executables
-- they are not invoked by the launch files
-- they may require extra system packages or Python packages that are not
-  declared as runtime dependencies in `package.xml`
-
-Their purpose is to keep generated assets reproducible inside the repository.
-
-## Building
-
-Build the package inside a sourced ROS 2 workspace:
+From the workspace root:
 
 ```bash
+source /opt/ros/jazzy/setup.bash
 colcon build --merge-install --symlink-install --packages-select ros_gz_tools
 source install/setup.bash
+colcon test --merge-install --packages-select ros_gz_tools
+colcon test-result --test-result-base build/ros_gz_tools --verbose
 ```
 
-## Example Usage
+## Examples
 
-Launch a world and its bridges:
+Start a world, its bridge and the Gazebo GUI:
 
 ```bash
 ros2 launch ros_gz_tools spawn_world.launch.py \
   world_sdf_file:=/absolute/path/to/world.sdf \
-  world_bridge_file:=/absolute/path/to/world_bridge.yaml \
-  use_gz_gui:=True
+  world_bridge_config_file:=/absolute/path/to/world_bridge.yaml \
+  gzgui_enabled:=True
 ```
 
-Launch only the Gazebo GUI client:
+Start only the GUI with the layout installed by this package:
 
 ```bash
 ros2 launch ros_gz_tools spawn_gui.launch.py \
-  gz_gui_config_file:=package://ros_gz_tools/config/gz_gui.config
+  gzgui_config_file:="$(ros2 pkg prefix ros_gz_tools)/share/ros_gz_tools/config/gui.config"
+```
+
+Spawn one model from an SDF file with debug logging:
+
+```bash
+ros2 launch ros_gz_tools spawn_model.launch.py \
+  world_name:=factory \
+  model_entity_name:=robot_01 \
+  model_sdf_file:=/absolute/path/to/robot.sdf \
+  node_args:='{"output":"both","ros_arguments":["--log-level","debug"]}'
+```
+
+Remove that model:
+
+```bash
+ros2 launch ros_gz_tools remove_model.launch.py \
+  world_name:=factory \
+  model_entity_name:=robot_01
 ```

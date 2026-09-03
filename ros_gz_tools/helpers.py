@@ -1,22 +1,15 @@
 """Utilities for reading Gazebo world metadata from SDF documents."""
 
-import xml.etree.ElementTree as ET
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 
 def get_world_name(world_file: str | Path) -> str:
     """
     Return the Gazebo world name defined in one SDF file.
 
-    Args:
-        world_file: Path or string path to the SDF world file.
-
-    Returns:
-        str: The value stored in the `<world name="...">` element.
-
-    Raises:
-        ValueError: If the SDF document has no `<world>` element or the element
-            has no `name` attribute.
+    The function raises `ValueError` when the SDF document has no direct `<world>` element or the
+    element does not define a non-empty `name` attribute.
     """
     return _get_world_name_from_root(ET.parse(world_file).getroot(), str(world_file))
 
@@ -35,7 +28,7 @@ def _get_world_name_from_root(root: ET.Element, source: str) -> str:
 
     world_name = world.get('name')
 
-    if not world_name:
+    if not world_name or not world_name.strip():
         raise ValueError(f"World source '{source}' does not define a name in its <world> element")
 
     return world_name

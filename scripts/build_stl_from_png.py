@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 import argparse
+from datetime import datetime, timezone
+import math
 import os
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
 
 
-def positive_float(value):
-    """Parse a CLI value as a positive float."""
+def positive_float(value: str) -> float:
+    """Parse a positive finite float from one command-line value."""
     try:
         parsed = float(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(f'Invalid float value: {value}') from exc
 
-    if parsed <= 0:
-        raise argparse.ArgumentTypeError(f'Value must be > 0: {value}')
+    if not math.isfinite(parsed) or parsed <= 0.0:
+        raise argparse.ArgumentTypeError(f'Value must be positive and finite: {value}')
 
     return parsed
 
 
-def generate_default_output_path():
+def generate_default_output_path() -> str:
     """Generate a default STL output path in /tmp using mktemp-like naming."""
     date_prefix = datetime.now(timezone.utc).strftime('%Y%m%d')
     template = f'/tmp/{date_prefix}-XXXXXX.stl'
@@ -39,7 +40,7 @@ def generate_default_output_path():
     return output_path
 
 
-def parse_args():
+def parse_args() -> tuple[str, str, float, float]:
     """Build runtime configuration for STL generation from CLI arguments."""
     parser = argparse.ArgumentParser(
         description=(
@@ -48,11 +49,17 @@ def parse_args():
         )
     )
 
-    parser.add_argument('image_path', type=str, help='Path to the input PNG image (black=obstacles, white=free space)')
+    parser.add_argument(
+        'image_path', type=str, help='Path to the input PNG image where black represents obstacles.'
+    )
 
-    parser.add_argument('resolution', type=positive_float, help='Resolution in meters per pixel (float > 0)')
+    parser.add_argument(
+        'resolution', type=positive_float, help='Positive finite resolution in meters per pixel.'
+    )
 
-    parser.add_argument('height', type=positive_float, help='Height of the walls in meters (float > 0)')
+    parser.add_argument(
+        'height', type=positive_float, help='Positive finite wall height in meters.'
+    )
 
     parser.add_argument(
         '--output',
@@ -73,26 +80,22 @@ def parse_args():
 
 
 def generate_stl(image_path, output_path, resolution, height):
-    """Generate an STL wall mesh from a floor-plan PNG image.
+    """
+    Generate an STL wall mesh from a floor-plan PNG image.
 
-    The input image must use black pixels for obstacles and white pixels for
-    free space.
-
-    Args:
-        image_path: Path to the input PNG image.
-        output_path: Path where the output STL file will be written.
-        resolution: Meters per pixel used to scale contour coordinates.
-        height: Extrusion height in meters for each detected obstacle.
+    The input image must use black pixels for obstacles and white pixels for free space.
+    `resolution` scales image pixels to meters, and `height` sets the wall extrusion in meters.
     """
     try:
         import cv2
-        import trimesh
         from shapely.geometry import Polygon
+        import trimesh
     except ModuleNotFoundError as exc:
         print(
             (
                 f"Error: Missing Python dependency '{exc.name}'. "
-                'Install required packages: opencv-python numpy scipy trimesh shapely mapbox-earcut.'
+                'Install these packages: opencv-python, numpy, scipy, trimesh, shapely, and '
+                'mapbox-earcut.'
             ),
             file=sys.stderr,
         )
@@ -114,23 +117,24 @@ def generate_stl(image_path, output_path, resolution, height):
 
     for i, contour in enumerate(contours):
         if len(contour) >= 3:
-            # Use the original contour points. Additional simplification can
-            # create self-intersections and invalid polygons.
+            # Use the original contour points.
+            # Additional simplification can create self-intersections and invalid polygons.
             points_2d = contour.reshape(-1, 2) * resolution
             poly = Polygon(points_2d)
 
-            # Only extrude polygons that Shapely considers valid and that
-            # actually enclose a non-zero area.
+            # Extrude only valid polygons that enclose a non-zero area.
             if poly.is_valid and poly.area > 0:
                 try:
                     mesh = trimesh.creation.extrude_polygon(poly, height=height)
                     mesh_list.append(mesh)
-                except Exception as e:
-                    print(f'Warning: Polygon {i} skipped due to geometry error: {e}', file=sys.stderr)
+                except Exception as exc:
+                    print(
+                        f'Warning: Polygon {i} skipped due to geometry error: {exc}',
+                        file=sys.stderr,
+                    )
 
     if mesh_list:
-        # Export a single STL because downstream Gazebo usage expects one mesh
-        # file for the whole environment.
+        # Downstream Gazebo worlds expect one mesh for the complete environment.
         final_mesh = trimesh.util.concatenate(mesh_list)
         final_mesh.export(output_path)
         print(f'Success! STL saved as: {output_path}')
@@ -139,7 +143,7 @@ def generate_stl(image_path, output_path, resolution, height):
         sys.exit(1)
 
 
-def main():
+def main() -> None:
     """Parse CLI arguments and run the STL generation workflow."""
     image_path, output_path, resolution, height = parse_args()
     generate_stl(image_path, output_path, resolution, height)
