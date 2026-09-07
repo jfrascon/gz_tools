@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime
+from datetime import timezone
 import math
 import os
 import subprocess
@@ -50,7 +51,9 @@ def parse_args() -> tuple[str, str, float, float]:
     )
 
     parser.add_argument(
-        'image_path', type=str, help='Path to the input PNG image where black represents obstacles.'
+        'image_path',
+        type=str,
+        help='Path to the input PNG image where black represents obstacles.',
     )
 
     parser.add_argument(

@@ -2,7 +2,9 @@
 <package format="3">
   <name>ros_gz_tools</name>
   <version>1.0.0</version>
-  <description>Gazebo Sim resources and reusable launch helpers for simulation bringup.</description>
+  <description>
+    Gazebo Sim resources and reusable launch helpers for simulation bringup.
+  </description>
   <maintainer email="jfrascon@gmail.com">Juan Francisco Rascon Crespo</maintainer>
   <license>Apache-2.0</license>
 
@@ -11,6 +13,9 @@
 
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-shapely</exec_depend>
+  <exec_depend>python3-trimesh</exec_depend>
   <exec_depend>ros2_launch_helpers</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
@@ -22,7 +27,6 @@
   <test_depend>ament_cmake_xmllint</test_depend>
   <test_depend>ament_index_python</test_depend>
   <test_depend>ament_lint_auto</test_depend>
-  <test_depend>python3-pytest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

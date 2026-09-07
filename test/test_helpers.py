@@ -4,7 +4,8 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from ros_gz_tools.helpers import get_world_name, get_world_name_from_string
+from ros_gz_tools.helpers import get_world_name
+from ros_gz_tools.helpers import get_world_name_from_string
 
 
 def test_get_world_name_reads_a_file(tmp_path) -> None:

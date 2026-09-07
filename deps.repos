@@ -2,4 +2,5 @@ repositories:
     ros2_launch_helpers:
         type: git
         url: https://github.com/jfrascon/ros2_launch_helpers.git
-        version: 35154fab7cdbfcded14efbcab77e0de55d5961b3
+        version: 62b2b516888238bdf1c80d32f5a73c6c1459002d
+        #exclude: [] # list of repos files inside repository_path to exclude (optional)

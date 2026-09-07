@@ -55,7 +55,7 @@ repos:
   # Python hooks
   # Ruff replaces both Black (formatter) and isort (import sorting).
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.5
+    rev: v0.16.6
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -65,6 +65,13 @@ repos:
   # These hooks validate Python after Ruff applies its automatic changes.
   - repo: local
     hooks:
+      # - id: ament_mypy
+      #   name: ament_mypy
+      #   description: Statically check Python type annotations with mypy.
+      #   entry: ament_mypy
+      #   language: system
+      #   types: [python]
+
       - id: ament_flake8
         name: ament_flake8
         description: Check Python code with the ROS 2 Flake8 configuration.
